@@ -1,0 +1,12 @@
+### Get all reviews
+GET http://localhost:3030/products/68bfcf396a8e789bd4154517/reviews
+
+### Add a review
+POST http://localhost:3030/products/68bfcf396a8e789bd4154517/reviews
+Content-Type: application/json
+
+{
+    "rating": 4,
+    "comment": "OK",
+    "isPinned": false
+}
