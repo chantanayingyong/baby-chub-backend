@@ -112,13 +112,13 @@ export const removeProductFromCart = async (req, res, next) => {
     const { user } = req.user;
 
     try {
-        const updateCart = await Cart.findOneAndUpdate(
+        const updatedCart = await Cart.findOneAndUpdate(
             { userId: user._id },
             { $pull: { products: { productId } } },
             { new: true }
         );
 
-        if (!updateCart) {
+        if (!updatedCart) {
             const error = new Error("Cart or product not found");
             error.status(404);
             return next(error);
@@ -127,6 +127,31 @@ export const removeProductFromCart = async (req, res, next) => {
         res.json({
             error: false,
             message: "Product deleted successfully",
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const clearCart = async (req, res, next) => {
+    const { user } = req.user;
+
+    try {
+        const updatedCart = await Cart.findOneAndUpdate(
+            { userId: user._id },
+            { $set: { products: [] } },
+            { new: true }
+        );
+
+        if (!updatedCart) {
+            const error = new Error("Cart not found");
+            error.status(404);
+            return next(error);
+        }
+
+        res.json({
+            error: false,
+            message: "Cart cleared",
         });
     } catch (err) {
         next(err);
