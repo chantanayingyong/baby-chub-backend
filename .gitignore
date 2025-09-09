@@ -1,3 +1,6 @@
+# api testing file
+product-api.rest
+
 # Logs
 logs
 *.log
