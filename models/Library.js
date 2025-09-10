@@ -2,7 +2,6 @@ import mongoose from "mongoose";
 
 const librarySchema = new mongoose.Schema(
   {
-    /* RELATIONSHIP REFERENCES */
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -24,9 +23,6 @@ const librarySchema = new mongoose.Schema(
       required: true,
     },
 
-    /** -------------------------
-     *  PRODUCT INFORMATION
-     * ------------------------- */
     productTitle: { type: String, required: true },
     type: {
       type: String,
@@ -34,9 +30,6 @@ const librarySchema = new mongoose.Schema(
       required: true,
     },
 
-    /** -------------------------
-     *  USAGE STATUS
-     * ------------------------- */
     status: {
       type: String,
       enum: ["active", "expired", "revoked"],
@@ -51,10 +44,6 @@ const librarySchema = new mongoose.Schema(
       type: Number,
       default: 0, // สำหรับ track % progress เช่น คอร์สเรียน
     },
-
-    /** -------------------------
-     *  META
-     * ------------------------- */
   },
   { timestamps: true }
 );
