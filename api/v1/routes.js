@@ -4,6 +4,6 @@ import productRoutes from "./routes/productRoutes.js";
 export default () => {
   const router = express.Router();
 
-  router.use("/products", productRoutes);
+  router.use("/", productRoutes);
   return router;
 };
