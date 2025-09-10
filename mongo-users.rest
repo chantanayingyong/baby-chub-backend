@@ -1,0 +1,229 @@
+# mongo-users.rest
+# ชุดทดสอบ Backend (User: Auth + Profile) สำหรับ API ที่เมานท์ใต้ /api/v1
+# ใช้กับ VS Code REST Client (humao.rest-client)
+# ---------------------------------------------------------------
+# คำแนะนำ:
+# - เปิด rememberCookies ไว้ (ดูด้านบน) เพื่อให้ /auth/me ใช้คุกกี้จาก /auth/login ได้
+# - ใน DEV: ใช้ host เดียวกัน (เช่น ทั้งหมดเรียก http://localhost:3000) เพื่อให้คุกกี้มีผล
+# - ถ้าเจอ 429 ให้พักสักครู่ (มี rate limit)
+# ---------------------------------------------------------------
+
+@host = http://localhost:3000
+# ↑ พอร์ตที่ server รัน (ตาม .env → PORT=3000)
+
+@base = {{host}}/api/v1
+# ↑ base path เวอร์ชัน 1
+
+# ---------- บัญชีทดสอบหลัก (คงที่: สำหรับ login/me/profile) ----------
+@test_email = man.test@example.com
+@password = secret1234
+
+# ---------- สมัครบัญชีสุ่ม (ป้องกันอีเมลซ้ำ ใช้เมื่ออยากลอง signup หลายรอบ) ----------
+@ts = {{$timestamp}}
+@new_email = man+{{ts}}@example.com
+
+
+### ───────────────────────────────────────────────────────────────
+### SCENARIO 0: Health & Basic
+### ───────────────────────────────────────────────────────────────
+
+### Health check (ตรวจว่า server ทำงาน)
+GET {{host}}/healthz
+# ควรได้ {"status":"ok", ...} ถ้า 404 แปลว่ายังไม่ได้ประกาศ /healthz ใน server.js
+
+
+### ───────────────────────────────────────────────────────────────
+### SCENARIO 1: Sign up → Verify → Login → Me (บัญชีทดสอบหลัก)
+### ───────────────────────────────────────────────────────────────
+
+### 1.1 Sign up (ครั้งเดียวสำหรับบัญชีหลัก)
+# หลังยิง สำเร็จแล้วดู token ยืนยันอีเมลใน console ของ server
+POST {{base}}/auth/signup
+Content-Type: application/json
+
+{
+  "firstName": "Man",
+  "lastName": "Tester",
+  "mobile": "0812345678",
+  "email": "{{test_email}}",
+  "password": "{{password}}",
+  "targetAges": ["4-6", "6-9"],
+  "agreeToPolicy": true
+}
+
+### 1.2 Verify email (คัดลอก token จาก console มาใส่แทน PASTE_VERIFY_TOKEN)
+GET {{base}}/auth/verify-email?token=687b3c60d2dd13d525d479d85fc60c788b62cc1e504257c99ad422563a9fc766
+# ควรได้ { "message": "Email verified" }
+
+### 1.3 Login (ตั้ง httpOnly cookie: accessToken)
+# ต้องเปิด rememberCookies เพื่อให้ /auth/me ใช้คุกกี้นี้ได้
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{test_email}}",
+  "password": "{{password}}"
+}
+
+### 1.4 Me (อ่านข้อมูลผู้ใช้ปัจจุบันจาก cookie)
+GET {{base}}/auth/me
+# ถ้า 401: ตรวจว่า setting rememberCookies เปิดแล้ว และ /auth/login สำเร็จใน host เดียวกัน
+
+
+### ───────────────────────────────────────────────────────────────
+### SCENARIO 2: Sign up แบบสุ่ม (ทดลองสมัครซ้ำโดยไม่ชน) — (ไม่เกี่ยวกับบัญชีหลัก)
+### ───────────────────────────────────────────────────────────────
+
+### 2.1 Sign up (บัญชีสุ่ม)
+POST {{base}}/auth/signup
+Content-Type: application/json
+
+{
+  "firstName": "Rand",
+  "lastName": "User",
+  "mobile": "0890000000",
+  "email": "{{new_email}}",
+  "password": "{{password}}",
+  "targetAges": ["9-12", "13+"],
+  "agreeToPolicy": true
+}
+# ใช้เมื่ออยากทดสอบสมัครหลายครั้งเรื่อย ๆ
+
+
+### ───────────────────────────────────────────────────────────────
+### SCENARIO 3: Forgot → Reset Password (บัญชีทดสอบหลัก)
+### ───────────────────────────────────────────────────────────────
+
+### 3.1 Forgot password (ระบบจะ log reset token ที่ console)
+POST {{base}}/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "{{test_email}}"
+}
+
+### 3.2 Reset password (ใช้ token จาก console)
+POST {{base}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "token": "cb98c76f009293eedae78032cd9ceadf65716c2b1f49c2ac68798a56692da921",
+  "newPassword": "secret12345"
+}
+
+### 3.3 Login อีกครั้งด้วยรหัสใหม่
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{test_email}}",
+  "password": "secret12345"
+}
+
+### 3.4 Me (ตรวจว่าล็อกอินด้วยรหัสใหม่สำเร็จ)
+GET {{base}}/auth/me
+
+
+### ───────────────────────────────────────────────────────────────
+### SCENARIO 4: User Profile (ต้อง Login ก่อน)
+### ───────────────────────────────────────────────────────────────
+
+### 4.1 Get my profile
+GET {{base}}/users
+
+### 4.2 Update my profile
+PATCH {{base}}/users
+Content-Type: application/json
+
+{
+  "firstName": "Man",
+  "lastName": "Suwannason",
+  "mobile": "089-123-4567",
+  "targetAges": ["9-12", "13+"]
+}
+
+### 4.3 Change password (ส่ง currentPassword → newPassword)
+PATCH {{base}}/users/password
+Content-Type: application/json
+
+{
+  "currentPassword": "secret12345",
+  "newPassword": "secret1234"
+}
+# หมายเหตุ: หลังเปลี่ยนกลับเป็น secret1234 แล้ว รอบถัดๆ ไปให้ใช้ secret1234 เป็น currentPassword
+
+### 4.4 Set avatar
+PATCH {{base}}/users/avatar
+Content-Type: application/json
+
+{
+  "avatarUrl": "https://example.com/avatar.png"
+}
+
+### 4.5 Remove avatar
+DELETE {{base}}/users/avatar
+
+### 4.6 Set address
+PATCH {{base}}/users/address
+Content-Type: application/json
+
+{
+  "line1": "188 Spring Tower",
+  "line2": "20th Floor",
+  "city": "Bangkok",
+  "state": "",
+  "postalCode": "10400",
+  "country": "TH"
+}
+
+### 4.7 Set notification preferences
+PATCH {{base}}/users/notifications
+Content-Type: application/json
+
+{
+  "orderUpdates": true,
+  "productTips": true,
+  "promotions": false
+}
+
+### 4.8 Toggle newsletter
+PATCH {{base}}/users/newsletter
+Content-Type: application/json
+
+{
+  "newsletter": true
+}
+
+### 4.9 List my orders (MVP: อาจเป็น [] ถ้ายังไม่มี)
+GET {{base}}/users/orders
+
+### 4.10 Get a specific order (แทนที่ ORDER_ID จากรายการด้านบน)
+GET {{base}}/orders/ORDER_ID
+
+### 4.11 List active sessions (อุปกรณ์/เบราว์เซอร์ที่ล็อกอิน)
+GET {{base}}/users/sessions
+
+### 4.12 Remove a session (แทนที่ SESSION_ID จากรายการด้านบน)
+DELETE {{base}}/users/sessions/SESSION_ID
+
+
+### ───────────────────────────────────────────────────────────────
+### SCENARIO 5: Logout & Delete Account (บัญชีหลัก)
+### ───────────────────────────────────────────────────────────────
+
+### 5.1 Logout (ลบคุกกี้)
+POST {{base}}/auth/logout
+
+### 5.2 (ออปชัน) Login ใหม่ เพื่อยืนยันว่า cookie ทำงาน
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{test_email}}",
+  "password": "{{password}}"
+}
+
+### 5.3 (ออปชัน) Delete my account (ลบบัญชีหลัก + เคลียร์คุกกี้)
+# ระวัง: ลบแล้วข้อมูลบัญชีหลักหายไป ต้อง Sign up + Verify + Login ใหม่
+DELETE {{base}}/users
+# ควรได้ 204 No Content
