@@ -1,7 +1,7 @@
 import express from "express";
 import productRoutes from "./routes/productRoutes.js"
-import authRoutes from "./routes/authRoutes.js";   // authRoutes ไม่มี prefix
-import userRoutes from "./routes/userRoutes.js";   // มี /users ในไฟล์แล้ว
+import authRoutes from "./routes/authRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
 
 export default () => {
   const router = express.Router();
