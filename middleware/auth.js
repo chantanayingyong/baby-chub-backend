@@ -9,6 +9,7 @@ export const requireAuth = (req, res, next) => {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     // แนบข้อมูลไว้ใน req เพื่อใช้ต่อใน controller/route อื่น
     req.user = { id: payload.sub, role: payload.role };
+    console.log("req.user.id:", req.user.id)
     next();
   } catch {
     return res.status(401).json({ message: "Unauthorized" });

@@ -1,26 +1,17 @@
 import { Cart } from "../../../models/Cart.js";
 
 export const getProductsInCart = async (req, res, next) => {
-    const { user } = req.user;
+    const { user } = req;
 
     try {
-    const cart = await Cart.findOne(
-        { userId: user._id }, 
+    let cart = await Cart.findOne(
+        { userId: user.id }, 
         { _id: 0, products: 1 }
     )
     .populate('products.productId', '-isDiscounted -tags -age -asset' );
-
+    
     if (!cart) {
-        const newCart = await Cart.create(
-            { userId: user._id, products: [] },
-            { _id: 0, products: 1 }
-        );
-        
-        return res.json({
-            error: false,
-            cart: newCart,
-            message: "Retrieved products from cart successfully",
-        });
+        cart = await Cart.create({ userId: user.id, products: [] });
     }
     // console.log('cart:', cart)
     return res.json({
@@ -36,7 +27,7 @@ export const getProductsInCart = async (req, res, next) => {
 
 export const addProductToCart = async (req, res, next) => {
     const { productId, plan } = req.body;
-    const { user } = req.user;
+    const { user } = req;
 
     if (!productId) {
         const error = new Error("productId is required");
@@ -52,7 +43,7 @@ export const addProductToCart = async (req, res, next) => {
 
     try {
         const existingProduct = await Cart.findOne({
-            userId: user._id,
+            userId: user.id,
             products: {
                 $elemMatch: { productId }
             }
@@ -66,7 +57,7 @@ export const addProductToCart = async (req, res, next) => {
         }
 
         const cart = await Cart.findOneAndUpdate(
-            { userId: user._id },
+            { userId: user.id },
             { $push: { products: { productId, plan } } },
             { new: true, upsert: true }
         );
@@ -85,7 +76,7 @@ export const addProductToCart = async (req, res, next) => {
 /*
 export const addFavoriteToCart = async (req, res, next) => {
     const { productId } = req.body;
-    const { user } = req.user;
+    const { user } = req;
 
     if (!productId) {
         const error = new Error("productId is required");
@@ -95,7 +86,7 @@ export const addFavoriteToCart = async (req, res, next) => {
 
     try {
         const existingProduct = await Cart.findOne({
-            userId: user._id,
+            userId: user.id,
             products: {
                 $elemMatch: { productId }
             }
@@ -110,7 +101,7 @@ export const addFavoriteToCart = async (req, res, next) => {
         const plan = 
 
         const cart = await Cart.findOneAndUpdate(
-            { userId: user._id },
+            { userId: user.id },
             { $push: { products: { productId, plan: "" } } },
             { new: true, upsert: true }
         );
@@ -130,12 +121,12 @@ export const addFavoriteToCart = async (req, res, next) => {
 export const updateProductPlanInCart = async (req, res, next) => {
     const { productId } = req.params;
     const { plan } = req.body;
-    const { user } = req.user;
+    const { user } = req;
 
     try {
         const updateCart = await Cart.findOneAndUpdate(
             {
-                userId: user._id,
+                userId: user.id,
                 'products.productId': productId
             },
             {
@@ -162,11 +153,11 @@ export const updateProductPlanInCart = async (req, res, next) => {
 
 export const removeProductFromCart = async (req, res, next) => {
     const { productId } = req.params;
-    const { user } = req.user;
+    const { user } = req;
 
     try {
         const updatedCart = await Cart.findOneAndUpdate(
-            { userId: user._id },
+            { userId: user.id },
             { $pull: { products: { productId } } },
             { new: true }
         );
@@ -187,11 +178,11 @@ export const removeProductFromCart = async (req, res, next) => {
 };
 
 export const clearCart = async (req, res, next) => {
-    const { user } = req.user;
+    const { user } = req;
 
     try {
         const updatedCart = await Cart.findOneAndUpdate(
-            { userId: user._id },
+            { userId: user.id },
             { $set: { products: [] } },
             { new: true }
         );

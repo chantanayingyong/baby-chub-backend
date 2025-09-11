@@ -2,26 +2,17 @@ import { Favorite } from "../../../models/Favorite.js";
 
 
 export const getProductsInFavorite = async (req, res, next) => {
-    const { user } = req.user;
+    const { user } = req;
 
     try {
-    const favorite = await Favorite.findOne(
-        { userId: user._id }, 
+    let favorite = await Favorite.findOne(
+        { userId: user.id }, 
         { _id: 0, products: 1 }
     )
     .populate('products.productId', '-isDiscounted -tags -age -asset' );
 
     if (!favorite) {
-        const newFavorite = await Favorite.create(
-            { userId: user._id, products: [] },
-            { _id: 0, products: 1 }
-        );
-        
-        return res.json({
-            error: false,
-            favorite: newFavorite,
-            message: "Retrieved products from favorite successfully",
-        });
+        favorite = await Favorite.create({ userId: user.id, products: [] });
     }
     
     return res.json({
@@ -37,7 +28,7 @@ export const getProductsInFavorite = async (req, res, next) => {
 
 export const addProductToFavorite = async (req, res, next) => {
     const { productId } = req.body;
-    const { user } = req.user;
+    const { user } = req;
 
     if (!productId) {
         const error = new Error("productId is required");
@@ -47,7 +38,7 @@ export const addProductToFavorite = async (req, res, next) => {
 
     try {
         const existingProduct = await Favorite.findOne({
-            userId: user._id,
+            userId: user.id,
             products: {
                 $elemMatch: { productId }
             }
@@ -61,7 +52,7 @@ export const addProductToFavorite = async (req, res, next) => {
         }
 
         const favorite = await Favorite.findOneAndUpdate(
-            { userId: user._id },
+            { userId: user.id },
             { $push: { products: { productId } } },
             { new: true, upsert: true }
         );
@@ -79,11 +70,11 @@ export const addProductToFavorite = async (req, res, next) => {
 
 export const removeProductFromFavorite = async (req, res, next) => {
     const { productId } = req.params;
-    const { user } = req.user;
+    const { user } = req;
 
     try {
         const updatedFavorite = await Favorite.findOneAndUpdate(
-            { userId: user._id },
+            { userId: user.id },
             { $pull: { products: { productId } } },
             { new: true }
         );
@@ -104,11 +95,11 @@ export const removeProductFromFavorite = async (req, res, next) => {
 };
 
 export const clearFavorite = async (req, res, next) => {
-    const { user } = req.user;
+    const { user } = req;
 
     try {
         const updatedFavorite = await Favorite.findOneAndUpdate(
-            { userId: user._id },
+            { userId: user.id },
             { $set: { products: [] } },
             { new: true }
         );

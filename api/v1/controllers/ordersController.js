@@ -2,11 +2,11 @@
 
 /*
 export const getOrdersByUserId = async (req, res, next) => {
-    const { user } = req.user;
+    const { user } = req;
     
     try {
     const order = await Order.find(
-        { userId: user._id }, 
+        { userId: user.id }, 
         { _id: 0, userId: 0 }
     );
     // .populate('products.productId', '-isDiscounted -tags -age -asset' );
@@ -30,7 +30,7 @@ export const getOrdersByUserId = async (req, res, next) => {
 
 export const createOrder = async (req, res, next) => {
     const { products, paymentMethod } = req.body;
-    const { user } = req.user;
+    const { user } = req;
 
     // {
     //     "number": "",
@@ -65,7 +65,7 @@ export const createOrder = async (req, res, next) => {
 
     try {
         const existingProduct = await Cart.findOne({
-            userId: user._id,
+            userId: user.id,
             products: {
                 $elemMatch: { productId }
             }
@@ -79,7 +79,7 @@ export const createOrder = async (req, res, next) => {
         }
 
         const cart = await Cart.findOneAndUpdate(
-            { userId: user._id },
+            { userId: user.id },
             { $push: { products: { productId, plan } } },
             { new: true, upsert: true }
         );
