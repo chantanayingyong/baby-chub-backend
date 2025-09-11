@@ -32,7 +32,7 @@ const OrderSchema = new Schema(
 			enum: ['pending', 'paid', 'cancelled'],
 			default: 'pending'
 		},
-		paymentMethod: { type: String, trim: true },
+		paymentMethod: { type: String, trim: true, enum: ['credit_card', 'ShopeePay', 'PromptPay'] },
 	}, {
 		timestamps: true
 	}
