@@ -15,8 +15,48 @@ import crypto from "crypto";
 /* =========================
  * ค่าคงที่ที่ใช้ในสคีมา
  * ========================= */
-const TARGET_AGE_ENUM = ["3-4", "4-6", "6-9", "9-12", "13+"];
 const ROLE_ENUM = ["user", "admin"];
+
+// --- อายุช่วงที่อนุญาต (ให้ตรงกับ Frontend) ---
+const AGE_MIN = 3;
+const AGE_MAX = 15;
+
+// สคีมาช่วงอายุแบบฝัง (embedded) สำหรับเก็บ { from, to }
+const targetAgeSchema = new Schema(
+  {
+    from: {
+      type: Number,
+      required: true,
+      min: [AGE_MIN, `Age "from" must be ≥ ${AGE_MIN}`],
+      max: [AGE_MAX, `Age "from" must be ≤ ${AGE_MAX}`],
+      validate: {
+        validator: Number.isInteger,
+        message: 'Age "from" must be an integer',
+      },
+    },
+    to: {
+      type: Number,
+      required: true,
+      min: [AGE_MIN, `Age "to" must be ≥ ${AGE_MIN}`],
+      max: [AGE_MAX, `Age "to" must be ≤ ${AGE_MAX}`],
+      validate: {
+        validator: Number.isInteger,
+        message: 'Age "to" must be an integer',
+      },
+    },
+  },
+  { _id: false }
+);
+
+// ตรวจ from ≤ to
+targetAgeSchema.pre("validate", function (next) {
+  if (this.from > this.to) {
+    return next(new Error('Age "from" must be less than or equal to "to"'));
+  }
+  next();
+});
+
+
 
 /* =========================
  * Sub Schemas (ฝังในผู้ใช้)
@@ -136,10 +176,10 @@ const UserSchema = new Schema(
     avatarUrl: { type: String, trim: true }, // PATCH/DELETE /users/avatar
     address: { type: AddressSchema, default: {} }, // PATCH /users/address
 
-    targetAges: {
-      type: [String],
-      enum: TARGET_AGE_ENUM, // ["3-4","4-6","6-9","9-12","13+"]
-      default: [],
+    //  เก็บช่วงอายุแบบตัวเลข 3–15
+    targetAge: {
+      type: targetAgeSchema,
+      required: true, // ถ้าอยากให้ optional ก็เอาออกได้
     },
 
     notifications: { type: NotificationsSchema, default: {} }, // PATCH /users/notifications

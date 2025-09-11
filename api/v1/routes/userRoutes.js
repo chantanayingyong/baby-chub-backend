@@ -1,8 +1,13 @@
+
 import express from "express";
 import { User } from "../../../models/User.js";
 import { requireAuth } from "../../../middleware/auth.js";
 
 const router = express.Router();
+
+// กำหนดช่วงอายุให้ตรงกับ FE/Model
+const AGE_MIN = 3;
+const AGE_MAX = 15;
 
 // GET /users  (โปรไฟล์ตัวเอง)
 router.get("/users", requireAuth, async (req, res) => {
@@ -11,17 +16,44 @@ router.get("/users", requireAuth, async (req, res) => {
   return res.json({ user });
 });
 
-// PATCH /users  (อัปเดตชื่อ/มือถือ/targetAges)
+// PATCH /users  (อัปเดตชื่อ/มือถือ/targetAge)
 router.patch("/users", requireAuth, async (req, res) => {
-  const { firstName, lastName, mobile, targetAges } = req.body;
+  const { firstName, lastName, mobile, targetAge, ageFrom, ageTo } = req.body;
+
   const updates = {};
   if (typeof firstName === "string") updates.firstName = firstName;
   if (typeof lastName === "string") updates.lastName = lastName;
   if (typeof mobile === "string") updates.mobile = mobile;
-  if (Array.isArray(targetAges)) updates.targetAges = targetAges;
+
+  // รองรับอินพุต 2 แบบ: targetAge {from,to} หรือ ageFrom/ageTo
+  let range = targetAge;
+  if (!range && ageFrom != null && ageTo != null) {
+    range = { from: Number(ageFrom), to: Number(ageTo) };
+  }
+
+  if (range) {
+    const from = Number(range.from);
+    const to = Number(range.to);
+    // ตรวจว่าเป็นจำนวนเต็ม อยู่ในช่วง 3–15 และ from ≤ to
+    if (
+      !Number.isFinite(from) ||
+      !Number.isFinite(to) ||
+      !Number.isInteger(from) ||
+      !Number.isInteger(to) ||
+      from < AGE_MIN ||
+      to > AGE_MAX ||
+      from > to
+    ) {
+      return res.status(400).json({
+        message: `Age must be integers between ${AGE_MIN} and ${AGE_MAX}, and "from" ≤ "to"`,
+      });
+    }
+    updates.targetAge = { from, to };
+  }
 
   const user = await User.findByIdAndUpdate(req.user.id, updates, {
     new: true,
+    runValidators: true, // ให้ schema ตรวจ min/max/int ของ targetAge ด้วย
   });
   return res.json({ user });
 });
