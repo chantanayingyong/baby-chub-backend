@@ -114,6 +114,8 @@ export const addProduct = async (req, res, next) => {
     }
 };
 
+//new arrivals
+
 export const getNewArrivals = async (req, res, next) => {
     try {
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
