@@ -1,4 +1,4 @@
-import { Library } from "../../../models/Library.js";
+import Library from "../../../models/Library.js";
 
 /* POST: เพิ่ม purchased item (หลัง order confirmed) */
 export const addLibraryItem = async (req, res) => {

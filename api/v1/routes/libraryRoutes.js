@@ -6,7 +6,7 @@ import {
   getExpiredLibraries,
   updateLibraryItem,
   deleteLibraryItem,
-} from "../controllers/libraryController.js";
+} from "../controllers/librariesController.js";
 
 const router = express.Router();
 
