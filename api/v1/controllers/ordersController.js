@@ -59,7 +59,8 @@ export const createOrder = async (req, res, next) => {
     }
 
     try {
-        const productIdList = products.map(item => item.productId); 
+        const productIdList = products.map(item => item.productId);
+
         const checkoutItems = await Product.find(
             { _id: { "$in": productIdList }, available: true }
         );
@@ -71,14 +72,14 @@ export const createOrder = async (req, res, next) => {
         }
 
         const orderProducts = products.map(userProduct => {
-            const dbProduct = checkoutItems.find(item => item._id === userProduct.productId);
-
+            const dbProduct = checkoutItems.find(item => item._id.toString() === userProduct.productId);
+            
             if (!dbProduct) {
                 const error = new Error(`Product not found: ${userProduct.productId}`);
                 error.status = 400;
                 return next(error);
             }
-
+            
             const purchasePrice = dbProduct.prices[userProduct.plan];
             if (purchasePrice === undefined) {
                 const error = new Error(`Invalid plan '${userProduct.plan}' for product ${dbProduct.name}`);

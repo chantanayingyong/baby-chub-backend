@@ -7,7 +7,7 @@ const OrderSchema = new Schema(
 			ref: 'User',
 			required: true
 		},
-		number: { type: String, required: true, trim: true, unique: true },
+		number: { type: String, trim: true, unique: true },
 		products: [{
 			productId: {
 				type: Schema.Types.ObjectId,
@@ -67,7 +67,7 @@ OrderSchema.pre('save', async function (next) {
 
         const formattedCounter = String(newCounter).padStart(4, '0');
         this.number = `${datePrefix}${formattedCounter}`;
-
+		console.log('number:', this.number)
         next();
     } catch (error) {
         next(error);
