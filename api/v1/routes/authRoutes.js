@@ -1,3 +1,4 @@
+
 import express from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
@@ -13,6 +14,10 @@ const signAccessToken = (payload) =>
 
 const isProd = process.env.NODE_ENV === "production";
 
+// ===== ค่าคงที่ช่วงอายุให้ตรงกับ Frontend/Model =====
+const AGE_MIN = 3;
+const AGE_MAX = 15;
+
 // POST /auth/signup
 router.post("/signup", async (req, res, next) => {
   try {
@@ -23,9 +28,13 @@ router.post("/signup", async (req, res, next) => {
       firstName,
       lastName,
       mobile,
-      targetAges = [],
+      // เดิมใช้ targetAges: [] (bucket) — เปลี่ยนเป็นช่วงตัวเลขแบบ FE
+      targetAge, // { from, to }
+      ageFrom, // เผื่อรับรูปแบบเก่า
+      ageTo, // เผื่อรับรูปแบบเก่า
       agreeToPolicy,
     } = req.body;
+
     if (!email || !password || (!fullName && !(firstName && lastName))) {
       return res.status(400).json({ message: "Missing required fields" });
     }
@@ -37,13 +46,35 @@ router.post("/signup", async (req, res, next) => {
     if (exists)
       return res.status(409).json({ message: "Email already in use" });
 
+    // --- Normalize target age ---
+    // รองรับทั้ง {from,to} หรือ ageFrom/ageTo แล้วตรวจ 3–15, เป็นจำนวนเต็ม และ from ≤ to
+    let range = targetAge;
+    if (!range && ageFrom != null && ageTo != null) {
+      range = { from: Number(ageFrom), to: Number(ageTo) };
+    }
+    if (
+      !range ||
+      !Number.isFinite(range.from) ||
+      !Number.isFinite(range.to) ||
+      !Number.isInteger(range.from) ||
+      !Number.isInteger(range.to) ||
+      range.from < AGE_MIN ||
+      range.to > AGE_MAX ||
+      range.from > range.to
+    ) {
+      return res.status(400).json({
+        message: `Age must be integers between ${AGE_MIN} and ${AGE_MAX}, and "from" ≤ "to"`,
+      });
+    }
+
     const user = new User({
       email,
       password, // pre('save') จะ hash ให้อัตโนมัติ
       mobile,
-      targetAges,
       role: "user",
       agreeToPolicyAt: new Date(),
+      // ✅ เก็บช่วงอายุเป็นตัวเลขให้ตรงกับ Model ใหม่
+      targetAge: { from: range.from, to: range.to },
     });
 
     // รองรับทั้ง fullName หรือแยกชื่อ
