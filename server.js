@@ -27,8 +27,16 @@ app.use(cors(corsOptions));
 app.use(limiter);
 app.use(express.json());
 app.use(cookieParser());
-app.use("/", apiRoutes());
+app.use("/api/v1", apiRoutes());
 app.use("/api", libraryRoutes);
+
+app.get("/healthz", (_req, res) => {
+  res.json({
+    status: "ok",
+    port: PORT,
+    env: process.env.NODE_ENV || "development",
+  });
+});
 
 app.get("/", (_req, res) => {
   res.send(`
