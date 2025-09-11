@@ -4,16 +4,23 @@ export const getProductsInCart = async (req, res, next) => {
     const { user } = req.user;
 
     try {
-    const cart = await Cart.find(
+    const cart = await Cart.findOne(
         { userId: user._id }, 
-        { _id: 0, 'products.productId': 1, 'products.plan': 1 }
+        { _id: 0, products: 1 }
     )
     .populate('products.productId', '-isDiscounted -tags -age -asset' );
 
     if (!cart) {
-        const error = new Error("Cart or product not found");
-        error.status(404);
-        return next(error);
+        const newCart = await Cart.create(
+            { userId: user._id, products: [] },
+            { _id: 0, products: 1 }
+        );
+        
+        return res.json({
+            error: false,
+            cart: newCart,
+            message: "Retrieved products from cart successfully",
+        });
     }
     // console.log('cart:', cart)
     return res.json({
@@ -33,13 +40,56 @@ export const addProductToCart = async (req, res, next) => {
 
     if (!productId) {
         const error = new Error("productId is required");
-        error.status(400);
+        error.status = 400;
         return next(error);
     }
 
     if (!plan) {
         const error = new Error("Product plan is required");
-        error.status(400);
+        error.status = 400;
+        return next(error);
+    }
+
+    try {
+        const existingProduct = await Cart.findOne({
+            userId: user._id,
+            products: {
+                $elemMatch: { productId }
+            }
+        });
+
+        if (existingProduct) {
+            return res.status(200).json({
+                error: false,
+                message: "Product in cart already",
+            });
+        }
+
+        const cart = await Cart.findOneAndUpdate(
+            { userId: user._id },
+            { $push: { products: { productId, plan } } },
+            { new: true, upsert: true }
+        );
+
+        res.status(201).json({
+            error: false,
+            cart,
+            message: "Product added successfully",
+        });
+
+    } catch (err) {
+        next(err);
+    }
+};
+
+/*
+export const addFavoriteToCart = async (req, res, next) => {
+    const { productId } = req.body;
+    const { user } = req.user;
+
+    if (!productId) {
+        const error = new Error("productId is required");
+        error.status = 400;
         return next(error);
     }
 
@@ -53,13 +103,15 @@ export const addProductToCart = async (req, res, next) => {
 
         if (existingProduct) {
             const error = new Error("Product in cart already");
-            error.status(400);
+            error.status = 400;
             return next(error);
         }
 
+        const plan = 
+
         const cart = await Cart.findOneAndUpdate(
             { userId: user._id },
-            { $push: { products: { productId, plan } } },
+            { $push: { products: { productId, plan: "" } } },
             { new: true, upsert: true }
         );
 
@@ -73,6 +125,7 @@ export const addProductToCart = async (req, res, next) => {
         next(err);
     }
 };
+*/
 
 export const updateProductPlanInCart = async (req, res, next) => {
     const { productId } = req.params;
@@ -93,7 +146,7 @@ export const updateProductPlanInCart = async (req, res, next) => {
 
         if (!updateCart) {
             const error = new Error("Cart or product not found");
-            error.status(404);
+            error.status = 404;
             return next(error);
         }
 
@@ -120,7 +173,7 @@ export const removeProductFromCart = async (req, res, next) => {
 
         if (!updatedCart) {
             const error = new Error("Cart or product not found");
-            error.status(404);
+            error.status = 404;
             return next(error);
         }
 
@@ -145,7 +198,7 @@ export const clearCart = async (req, res, next) => {
 
         if (!updatedCart) {
             const error = new Error("Cart not found");
-            error.status(404);
+            error.status = 404;
             return next(error);
         }
 
