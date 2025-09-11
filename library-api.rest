@@ -1,0 +1,42 @@
+### เพิ่ม item เข้า library
+POST http://localhost:3000/api/v1/users/libraries
+Content-Type: application/json
+
+{
+  "userId": "650000000000000000000006",
+  "orderId": "650000000000000000000106",
+  "orderItemId": "subitem6",
+  "productId": "650000000000000000001006",
+  "productTitle": "BabyChub Music",
+  "type": "subscription",
+  "status": "active",
+  "expireAt": "2025-12-15",
+  "progress": 50
+}
+
+### ดึง library ทั้งหมดของ user
+GET http://localhost:3000/api/v1/users/64fa13d5ab1234567890abcd/libraries
+
+### ดึง active libraries ของ productId
+GET http://localhost:3000/api/v1/users/64fa13d5ab1234567890abcd/libraries/64fa14e6bc1234567890bbbb/actives
+
+### ดึง expired libraries ของ productId
+GET http://localhost:3000/api/v1/users/64fa13d5ab1234567890abcd/libraries/64fa14e6bc1234567890bbbb/expiries
+
+### อัปเดต library item
+PATCH http://localhost:3000/api/v1/users/libraries
+Content-Type: application/json
+
+{
+  "id": "64fa1578de1234567890cccc",
+  "status": "expired",
+  "progress": 80
+}
+
+### ลบ library item
+DELETE http://localhost:3000/api/v1/users/libraries
+Content-Type: application/json
+
+{
+  "id": "64fa1578de1234567890cccc"
+}
