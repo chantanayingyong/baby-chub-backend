@@ -1,7 +1,4 @@
 // models/User.js
-// -------------------------------------------------------------------
-// User model (ES Modules) สำหรับ Mongoose/MongoDB
-
 /* =========================
  * Imports (ESM)
  *  - Schema, model: สร้างสคีมา/โมเดล
@@ -55,7 +52,6 @@ targetAgeSchema.pre("validate", function (next) {
   }
   next();
 });
-
 
 
 /* =========================
