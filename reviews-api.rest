@@ -6,7 +6,23 @@ POST http://localhost:3030/products/68bfcf396a8e789bd4154517/reviews
 Content-Type: application/json
 
 {
-    "rating": 4,
-    "comment": "OK",
+    "rating": 5,
+    "comment": "Awesome",
     "isPinned": false
 }
+
+### Update a review -> endpoint /products/:productId/reviews/:reviewId
+PATCH http://localhost:3030/products/68bfcf396a8e789bd4154517/reviews/68c29f05c8a77d726d423f0f
+Content-Type: application/json
+
+{
+    "rating": 4,
+    "comment": "Meh",
+    "isPinned": true
+}
+
+### Delete a review
+DELETE http://localhost:3030/products/68bfcf396a8e789bd4154517/reviews/68c297d27749d54cd0cf2aad
+
+### Toggle pinned a review
+PATCH http://localhost:3030/products/68bfcf396a8e789bd4154517/reviews/68c29f05c8a77d726d423f0f/pin
