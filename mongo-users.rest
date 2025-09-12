@@ -1,0 +1,208 @@
+
+# mongo-users.rest (User: Auth + Profile) — version: targetAge {from,to}
+# ใช้กับ VS Code REST Client
+# ตั้งค่า Settings: "rest-client.rememberCookiesForSubsequentRequests": true
+
+@host = http://localhost:3000
+@base = {{host}}/api/v1
+
+# บัญชีทดสอบหลัก (คงที่ สำหรับ login/me/profile)
+@test_email = man.test@example.com
+@password = secret1234
+
+# สมัครบัญชีสุ่ม (กันอีเมลซ้ำ)
+@ts = {{$timestamp}}
+@new_email = man+{{ts}}@example.com
+
+
+### ───────────────────────────────────────────────────────────────
+### HEALTH
+### ───────────────────────────────────────────────────────────────
+GET {{host}}/healthz
+# ควรได้ {"status":"ok", ...}
+
+
+### ───────────────────────────────────────────────────────────────
+### SCENARIO 1: Sign up → Verify → Login → Me (บัญชีหลัก)
+### ───────────────────────────────────────────────────────────────
+
+### 1.1 Sign up (ครั้งเดียวสำหรับบัญชีหลัก)
+POST {{base}}/auth/signup
+Content-Type: application/json
+
+{
+  "fullName": "Man Tester",
+  "mobile": "0812345678",
+  "email": "{{test_email}}",
+  "password": "{{password}}",
+  "targetAge": { "from": 3, "to": 15 },
+  "agreeToPolicy": true
+}
+# หลังยิง ดู token verify ใน console ของ server
+
+### 1.2 Verify email (คัดลอก token จาก console วางแทนด้านล่าง)
+GET {{base}}/auth/verify-email?token=796c04b5a26935adebb65c7d3e27f929a2b73a3e446227607ea31886cd60888a1
+### 1.3 Login (ตั้ง httpOnly cookie: accessToken)
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{test_email}}",
+  "password": "{{password}}"
+}
+
+### 1.4 Me (ต้องแนบคุกกี้จาก login อัตโนมัติ)
+GET {{base}}/auth/me
+
+
+### ───────────────────────────────────────────────────────────────
+### SCENARIO 2: Sign up แบบสุ่ม (ทดสอบสมัครซ้ำโดยไม่ชน)
+### ───────────────────────────────────────────────────────────────
+POST {{base}}/auth/signup
+Content-Type: application/json
+
+{
+  "fullName": "Rand User",
+  "mobile": "0890000000",
+  "email": "{{new_email}}",
+  "password": "{{password}}",
+  "targetAge": { "from": 9, "to": 12 },
+  "agreeToPolicy": true
+}
+
+
+### ───────────────────────────────────────────────────────────────
+### SCENARIO 3: Forgot → Reset Password (บัญชีหลัก)
+### ───────────────────────────────────────────────────────────────
+
+### 3.1 Forgot password (ดู reset token ใน console)
+POST {{base}}/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "{{test_email}}"
+}
+
+### 3.2 Reset password (วาง token ล่าสุด)
+POST {{base}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "token": "11826f171313e13b471166550c8f8adfb590789474c37bea2acbb85d093b9b6d",
+  "newPassword": "secret12345"
+}
+
+### 3.3 Login ด้วยรหัสใหม่
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{test_email}}",
+  "password": "secret12345"
+}
+
+### 3.4 Me
+GET {{base}}/auth/me
+
+
+### ───────────────────────────────────────────────────────────────
+### SCENARIO 4: User Profile (ต้อง Login)
+### ───────────────────────────────────────────────────────────────
+
+### 4.1 Get my profile
+GET {{base}}/users
+
+### 4.2 Update my profile (แก้ช่วงอายุด้วยรูปแบบ {from,to})
+PATCH {{base}}/users
+Content-Type: application/json
+
+{
+  "firstName": "Man",
+  "lastName": "Suwannason",
+  "mobile": "089-123-4567",
+  "targetAge": { "from": 10, "to": 13 }
+}
+
+### 4.3 Change password (current -> new)
+PATCH {{base}}/users/password
+Content-Type: application/json
+
+{
+  "currentPassword": "secret12345",
+  "newPassword": "secret1234"
+}
+
+### 4.4 Set avatar
+PATCH {{base}}/users/avatar
+Content-Type: application/json
+
+{
+  "avatarUrl": "https://example.com/avatar.png"
+}
+
+### 4.5 Remove avatar
+DELETE {{base}}/users/avatar
+
+### 4.6 Set address
+PATCH {{base}}/users/address
+Content-Type: application/json
+
+{
+  "line1": "188 Spring Tower",
+  "line2": "20th Floor",
+  "city": "Bangkok",
+  "state": "",
+  "postalCode": "10400",
+  "country": "TH"
+}
+
+### 4.7 Set notification preferences
+PATCH {{base}}/users/notifications
+Content-Type: application/json
+
+{
+  "orderUpdates": true,
+  "productTips": true,
+  "promotions": false
+}
+
+### 4.8 Toggle newsletter
+PATCH {{base}}/users/newsletter
+Content-Type: application/json
+
+{
+  "newsletter": true
+}
+
+### 4.9 List my orders (MVP อาจเป็น [])
+GET {{base}}/users/orders
+
+### 4.10 Get one order (แทนที่ ORDER_ID จากรายการด้านบน)
+GET {{base}}/orders/ORDER_ID
+
+### 4.11 List active sessions
+GET {{base}}/users/sessions
+
+### 4.12 Remove a session (แทนที่ SESSION_ID)
+DELETE {{base}}/users/sessions/SESSION_ID
+
+
+### ───────────────────────────────────────────────────────────────
+### SCENARIO 5: Logout & Delete Account
+### ───────────────────────────────────────────────────────────────
+
+### 5.1 Logout
+POST {{base}}/auth/logout
+
+### 5.2 (ออปชัน) Login ยืนยันว่า cookie เคลียร์แล้ว
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{test_email}}",
+  "password": "{{password}}"
+}
+
+### 5.3 (ออปชัน) Delete my account (ลบผู้ใช้หลัก)
+DELETE {{base}}/users
+# ได้ 204 No Content

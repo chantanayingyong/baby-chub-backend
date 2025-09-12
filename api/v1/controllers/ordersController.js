@@ -1,0 +1,142 @@
+import { Discount } from "../../../models/Discount.js";
+import { Order } from "../../../models/Order.js";
+import { Product } from "../../../models/Product.js";
+
+
+export const getOrdersByUserId = async (req, res, next) => {
+    const { user } = req;
+    
+    try {
+        const order = await Order.find(
+            { userId: user.id }, 
+            { _id: 0, userId: 0 }
+        );
+        // .populate('products.productId', '-isDiscounted -tags -age -asset' );
+
+        if (!order) {
+            const error = new Error("Order not found");
+            error.status = 404;
+            return next(error);
+        }
+        
+        return res.json({
+            error: false,
+            order,
+            message: "Retrieved orders successfully",
+        });
+
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const createOrder = async (req, res, next) => {
+    const { products = [], promoCode = "", paymentMethod } = req.body;
+    const { user } = req;
+
+    const isValidProduct = (products) => {
+        return products.every(item => (
+            typeof item?.productId === 'string' && typeof item?.plan === 'string'
+        ));
+    };
+
+    if (products.length === 0) {
+        const error = new Error("product is required");
+        error.status = 400;
+        return next(error);
+    }
+
+    if (!isValidProduct(products)) {
+        const error = new Error("Product id or product plan is missing");
+        error.status = 400;
+        return next(error);
+    }
+
+    if (typeof paymentMethod !== 'string') {
+        const error = new Error("Payment method is required");
+        error.status = 400;
+        return next(error);
+    }
+
+    try {
+        const productIdList = products.map(item => item.productId);
+
+        const checkoutItems = await Product.find(
+            { _id: { "$in": productIdList }, available: true }
+        );
+
+        if (!checkoutItems) {
+            const error = new Error("Products are not available");
+            error.status = 400;
+            return next(error);
+        }
+
+        const orderProducts = products.map(userProduct => {
+            const dbProduct = checkoutItems.find(item => item._id.toString() === userProduct.productId);
+            
+            if (!dbProduct) {
+                const error = new Error(`Product not found: ${userProduct.productId}`);
+                error.status = 400;
+                return next(error);
+            }
+            
+            const purchasePrice = dbProduct.prices[userProduct.plan];
+            if (purchasePrice === undefined) {
+                const error = new Error(`Invalid plan '${userProduct.plan}' for product ${dbProduct.name}`);
+                error.status = 400;
+                return next(error);
+            }
+
+            return {
+                productId: dbProduct._id,
+                productTitle: dbProduct.name,
+                type: dbProduct.type,
+                purchasePrice,
+                plan: userProduct.plan,
+            }
+        });
+
+        const subTotalAmount = orderProducts.reduce((acc, product) => acc + product.purchasePrice, 0);
+
+        let discount = null;
+        
+        if (promoCode) {
+            discount = Discount.findOneAndUpdate(
+                { 
+                    code: promoCode, 
+                    isActive: true,
+                    expireDate: { "$gt": new Date() },
+                    remaining: { "$gt": 0 }
+                },
+                { "$inc": { remaining: -1 } },
+                { new: true }
+            );
+        }
+
+        const totalAmount = !discount || subTotalAmount < discount.minimumPurchaseAmount
+            ? subTotalAmount
+            : discount.isPercent
+            ? subTotalAmount * (1 - (discount.amount * 0.01))
+            : subTotalAmount - discount.amount;
+
+        const newOrder = new Order({
+            userId: user.id,
+            products: orderProducts, // Use the newly constructed array
+            promoCode,
+            discountAmount: totalAmount - subTotalAmount,
+            totalAmount,
+            paymentMethod,
+            status: 'pending'
+        });
+
+        await newOrder.save();
+
+        res.status(201).json({
+            error: false,
+            message: "Order created successfully",
+        });
+
+    } catch (err) {
+        next(err);
+    }
+};

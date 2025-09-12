@@ -1,22 +1,23 @@
+// ตรวจสอบผู้ใช้จาก accessToken ใน httpOnly cookie
 import jwt from "jsonwebtoken";
 
-export const authUser = async (req, res, next) => {
-  const token = req.cookies?.accessToken;
-  if (!token) {
-    return res.json({ success: false, message: "Access denied. No token." });
-  }
+export const requireAuth = (req, res, next) => {
   try {
-    const decoded_token = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = { user: { _id: decoded_token.userId } };
+    const token = req.cookies?.accessToken;
+    if (!token) return res.status(401).json({ message: "Unauthorized" });
+
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    // แนบข้อมูลไว้ใน req เพื่อใช้ต่อใน controller/route อื่น
+    req.user = { id: payload.sub, role: payload.role };
+    console.log("req.user.id:", req.user.id)
     next();
-  } catch (err) {
-    const isExpired = err.name === "TokenExpiredError";
-    res.status(401).json({
-      error: true,
-      code: isExpired ? "TOKEN_EXPIRED" : "INVALID_TOKEN",
-      message: isExpired
-        ? "Token has expired, please log in again."
-        : "Invalid token.",
-    });
+  } catch {
+    return res.status(401).json({ message: "Unauthorized" });
   }
+};
+
+export const requireAdmin = (req, res, next) => {
+  if (req.user?.role !== "admin")
+    return res.status(403).json({ message: "Forbidden" });
+  next();
 };
