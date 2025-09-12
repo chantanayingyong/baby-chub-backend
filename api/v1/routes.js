@@ -13,14 +13,15 @@ import reviewRoutes from "./routes/reviewRoutes.js";
 export default () => {
   const router = express.Router();
 
-  router.use("/auth", authRoutes);
+  // router.use("/auth", authRoutes);
   router.use("/", userRoutes);
   // router.use("/test", testUserRoutes);
-  router.use("/", productRoutes);    // need to add authAdmin middleware
-  router.use("/", discountRoutes);   // need to add authAdmin middleware
+  router.use("/", productRoutes); // need to add authAdmin middleware
+  router.use("/products/:productId/reviews", reviewRoutes);
+  router.use("/", discountRoutes); // need to add authAdmin middleware
   router.use("/", requireAuth, cartRoutes);
   router.use("/", requireAuth, favoriteRoutes);
   router.use("/", requireAuth, orderRoutes);
-  router.use("/products/:id/reviews", reviewRoutes);
+
   return router;
 };

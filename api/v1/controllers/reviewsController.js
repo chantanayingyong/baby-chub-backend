@@ -1,7 +1,7 @@
 import { Review } from "../../../models/Review.js";
 
 export const getReviews = async (req, res, next) => {
-  const productId = req.params.id;
+  const productId = req.params.productId;
   try {
     const reviews = await Review.find({ productId }).sort({
       isPinned: -1,
@@ -19,7 +19,7 @@ export const getReviews = async (req, res, next) => {
 
 export const addReview = async (req, res, next) => {
   const { rating, comment, isPinned } = req.body;
-  const { id: productId } = req.params;
+  const productId = req.params.productId;
   // const userId = req.user.user.id;
 
   if (!rating && !comment) {
