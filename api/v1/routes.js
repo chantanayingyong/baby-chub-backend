@@ -13,7 +13,7 @@ import reviewRoutes from "./routes/reviewRoutes.js";
 export default () => {
   const router = express.Router();
 
-  // router.use("/auth", authRoutes);
+  router.use("/auth", authRoutes);
   router.use("/", userRoutes);
   // router.use("/test", testUserRoutes);
   router.use("/", productRoutes); // need to add authAdmin middleware
