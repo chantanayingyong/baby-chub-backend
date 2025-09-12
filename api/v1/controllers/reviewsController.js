@@ -1,7 +1,7 @@
 import { Review } from "../../../models/Review.js";
 
-export const getReviews = async (req, res) => {
-  const { id: productId } = req.params;
+export const getReviews = async (req, res, next) => {
+  const productId = req.params.id;
   try {
     const reviews = await Review.find({ productId }).sort({
       isPinned: -1,
@@ -13,29 +13,22 @@ export const getReviews = async (req, res) => {
       message: "All reviews retrieved successfully",
     });
   } catch (err) {
-    return res.status(500).json({
-      error: true,
-      message: "Failed to fetch reviews",
-      details: err.message,
-    });
+    next(err);
   }
 };
 
-export const addReview = async (req, res) => {
-  const { rating, comment, isPinned = false } = req.body;
+export const addReview = async (req, res, next) => {
+  const { rating, comment, isPinned } = req.body;
   const { id: productId } = req.params;
   // const userId = req.user.user.id;
 
-  if (!rating) {
-    return res.status(400).json({ error: true, message: "Rating is required" });
-  }
-
-  if (!comment) {
+  if (!rating && !comment) {
     return res
       .status(400)
-      .json({ error: true, message: "Comment is required" });
+      .json({ error: true, message: "Rating and comment are required" });
   }
 
+  // พอทำเรื่องระบุ user เสร็จแล้วค่อย เอา !userid ไปไว้รวมกับ if ข้างบน
   // if (!userId) {
   //   return res
   //     .status(401)
@@ -63,11 +56,96 @@ export const addReview = async (req, res) => {
       review,
       message: "Review added successfully",
     });
-  } catch (error) {
-    console.error("Error creating review:", error);
-    return res.status(500).json({
-      error: true,
-      message: "Internal Server Error",
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const editReview = async (req, res, next) => {
+  const reviewId = req.params.reviewId;
+  const { rating, comment, isPinned } = req.body;
+  // const { user } = req.user
+
+  if (!rating && !comment) {
+    return res
+      .status(400)
+      .json({ error: true, message: "Rating and comment is required" });
+  }
+
+  try {
+    const review = await Review.findOne({ _id: reviewId });
+
+    if (!review) {
+      return res.status(404).json({ error: true, message: "Review not found" });
+    }
+
+    if (rating) review.rating = rating;
+    if (comment) review.comment = comment;
+    if (typeof isPinned === "boolean") {
+      review.isPinned = isPinned;
+    }
+
+    await review.save();
+
+    return res.json({
+      error: false,
+      review,
+      message: "Review updated successfully",
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const deleteReview = async (req, res, next) => {
+  const reviewId = req.params.reviewId;
+  // const { user } = req.user
+
+  try {
+    const review = await Review.findOne({ _id: reviewId });
+
+    if (!review) {
+      return res
+        .status(404)
+        .json({ error: true, message: "Review not found." });
+    }
+
+    await Review.deleteOne({ _id: reviewId });
+
+    return res.json({
+      error: false,
+      message: "Review deleted successfully",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const togglePin = async (req, res, next) => {
+  const reviewId = req.params.reviewId;
+  // const { user } = req.user;
+
+  try {
+    const review = await Review.findOne({ _id: reviewId });
+
+    if (!review) {
+      return res.status(404).json({
+        error: true,
+        message: "Review not found.",
+      });
+    }
+
+    review.isPinned = !review.isPinned;
+    await review.save();
+
+    return res.json({
+      error: false,
+      review,
+      message: `Review has been ${
+        review.isPinned ? "pinned" : "unpinned"
+      } successfully`,
+    });
+  } catch (err) {
+    next(err);
   }
 };
