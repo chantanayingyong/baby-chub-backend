@@ -29,6 +29,7 @@ export const getProductsInFavorite = async (req, res, next) => {
 export const addProductToFavorite = async (req, res, next) => {
     const { productId } = req.body;
     const { user } = req;
+    
 
     if (!productId) {
         const error = new Error("productId is required");

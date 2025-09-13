@@ -91,3 +91,44 @@ export const addDiscount = async (req, res, next) => {
         next(err);
     }
 };
+
+export const applyDiscount = async (req, res, next) => {
+    const promoCode = req.body.code.toString().trim();
+    
+    if (!promoCode) {
+        return res.status(200).json({
+            error: false,
+            message: "The promotion code entered is empty"
+        });
+    }
+
+    try {
+        const discount = await Discount.findOne(
+            { 
+                code: promoCode, 
+                isActive: true,
+                expireDate: { "$gt": new Date() },
+                remaining: { "$gt": 0 }
+            },
+             {
+                _id: 0, isPercent: 1, amount: 1, minimumPurchaseAmount: 1
+            }
+        );
+
+        if (!discount) {
+            return res.status(200).json({
+                error: false,
+                message: "The promotion code may have expired"
+            });
+        }
+
+        res.status(200).json({
+            error: false,
+            discount,
+            message: "The promotion code applied successfully"
+        });
+        
+    } catch (err) {
+        next(err);
+    }
+};
