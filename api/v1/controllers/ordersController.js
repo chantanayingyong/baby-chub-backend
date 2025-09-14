@@ -41,7 +41,7 @@ export const createOrder = async (req, res, next) => {
     };
 
     if (products.length === 0) {
-        const error = new Error("product is required");
+        const error = new Error("Product is required");
         error.status = 400;
         return next(error);
     }
@@ -90,7 +90,7 @@ export const createOrder = async (req, res, next) => {
             return {
                 productId: dbProduct._id,
                 productTitle: dbProduct.name,
-                type: dbProduct.type,
+                productType: dbProduct.type,
                 purchasePrice,
                 plan: userProduct.plan,
             }

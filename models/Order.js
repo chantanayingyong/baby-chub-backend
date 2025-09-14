@@ -15,7 +15,7 @@ const OrderSchema = new Schema(
 				required: true
 			},
 			productTitle: { type: String, required: true, trim: true },
-			type: { type: String, required: true, trim: true },
+			productType: { type: String, required: true, trim: true },
 			purchasePrice: { type: Number, min: 0, required: true },
 			plan: {
 				type: String,
@@ -67,7 +67,7 @@ OrderSchema.pre('save', async function (next) {
 
         const formattedCounter = String(newCounter).padStart(4, '0');
         this.number = `${datePrefix}${formattedCounter}`;
-		console.log('number:', this.number)
+		// console.log('number:', this.number)
         next();
     } catch (error) {
         next(error);

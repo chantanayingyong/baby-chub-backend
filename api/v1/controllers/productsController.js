@@ -69,7 +69,7 @@ export const getProducts = async (req, res) => {
             filter.$and.push( { "subjects": { "$in": subjectList } } );
         }
 
-        console.log('filter:', filter)
+        // console.log('filter:', filter)
 
         const total = await Product.countDocuments(filter);
         const products = await Product.find(filter)
@@ -93,13 +93,67 @@ export const getProducts = async (req, res) => {
 // add new product
 export const addProduct = async (req, res, next) => {
     const newProduct = req.body;
-    console.log(newProduct);
+    // console.log(newProduct);
     try {
         const product = await Product.create(newProduct);
         res.status(201).json({
             error: false,
             product,
             message: "Product added successfully"
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// update a product
+export const updateProduct = async (req, res, next) => {
+    const { productId } = req.params;
+    const product = req.body;
+
+    if (!product) {
+        const error = new Error("Product is required");
+        error.status = 400;
+        return next(error);
+    }
+
+    try {
+        const updatedProduct = await Product.findByIdAndUpdate(
+            productId,
+            product,
+            { new: true, runValidators: true }
+        );
+
+        if (!updatedProduct) {
+            const error = new Error("Product not found");
+            error.status = 404;
+            return next(error);
+        }
+
+        res.status(201).json({
+            error: false,
+            message: "Product updated successfully"
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// delete a product
+export const deleteProduct = async (req, res, next) => {
+    const { productId } = req.params;
+    try {
+        const product = await Product.findByIdAndDelete(productId);
+
+        if (!product) {
+            const error = new Error("Product not found");
+            error.status = 404;
+            return next(error);
+        }
+
+        res.status(200).json({
+            error: false,
+            message: "Product deleted successfully"
         });
     } catch (err) {
         next(err);

@@ -1,5 +1,6 @@
 import express from "express";
-import { addProduct, getProducts } from "../controllers/productsController.js";
+import { addProduct, deleteProduct, getProducts, updateProduct } from "../controllers/productsController.js";
+import { requireAdmin, requireAuth } from "../../../middleware/auth.js";
 
 const router = express.Router();
 
@@ -8,7 +9,8 @@ router.get("/hello", (req, res) => {
 });
 
 router.get("/products", getProducts);
-
-router.post("/products", addProduct);
+router.post("/products", requireAuth, requireAdmin, addProduct);
+router.put("/products/:productId", requireAuth, requireAdmin, updateProduct);
+router.delete("/products/:productId", requireAuth, requireAdmin, deleteProduct);
 
 export default router;

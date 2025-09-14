@@ -18,7 +18,7 @@ export default () => {
   // router.use("/test", testUserRoutes);
   router.use("/", productRoutes); // need to add authAdmin middleware
   router.use("/products/:productId/reviews", reviewRoutes);
-  router.use("/", discountRoutes); // need to add authAdmin middleware
+  router.use("/", discountRoutes);
   router.use("/", requireAuth, cartRoutes);
   router.use("/", requireAuth, favoriteRoutes);
   router.use("/", requireAuth, orderRoutes);

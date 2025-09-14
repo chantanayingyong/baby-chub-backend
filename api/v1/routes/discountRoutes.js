@@ -1,10 +1,11 @@
 import express from "express";
 import { addDiscount, applyDiscount, getAllDiscounts } from "../controllers/discountsController.js";
+import { requireAdmin, requireAuth } from "../../../middleware/auth.js";
 
 const router = express.Router();
 
-router.get("/discount", getAllDiscounts);
-router.post("/discount", addDiscount);
+router.get("/discount", requireAuth, requireAdmin, getAllDiscounts);
+router.post("/discount", requireAuth, requireAdmin, addDiscount);
 router.patch("/discount", applyDiscount);
 
 
