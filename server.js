@@ -6,7 +6,7 @@ import { connectMongo } from "./config/mongo.js";
 import limiter from "./middleware/rateLimiter.js";
 import errorHandler from "./middleware/errorHandler.js";
 import cookieParser from "cookie-parser";
-import libraryRoutes from "./routes/libraryRoutes.js";
+import libraryRoutes from "./api/v1/routes/libraryRoutes.js";
 
 const app = express();
 
@@ -28,16 +28,6 @@ app.use(limiter);
 app.use(express.json());
 app.use(cookieParser());
 app.use("/api/v1", apiRoutes());
-app.use("/api", libraryRoutes);
-
-app.get("/healthz", (_req, res) => {
-  res.json({
-    status: "ok",
-    port: PORT,
-    env: process.env.NODE_ENV || "development",
-  });
-});
-
 app.get("/", (_req, res) => {
   res.send(`
     <!DOCTYPE html>
@@ -86,6 +76,14 @@ app.get("/", (_req, res) => {
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
+
+app.get("/healthz", (_req, res) => {
+  res.json({
+    status: "ok",
+    port: PORT,
+    env: process.env.NODE_ENV || "development",
+  });
+});
 
 (async () => {
   try {

@@ -14,7 +14,7 @@ const librarySchema = new mongoose.Schema(
       required: true,
     },
     orderItemId: {
-      type: String, // ใช้เก็บ sub-id เฉพาะภายใน order
+      type: String, // sub-id เฉพาะภายใน order
       required: true,
     },
     productId: {
@@ -38,17 +38,21 @@ const librarySchema = new mongoose.Schema(
     },
     expireAt: {
       type: Date,
-      default: null, // null = ไม่มีวันหมดอายุ
+      default: null, // null = ไม่มีวันหมดอายุ สินค้า onetime purchase
     },
     progress: {
       type: Number,
-      default: 0, // สำหรับ track % progress เช่น คอร์สเรียน
+      default: 0,
+      min: 0,
+      max: 100, // สำหรับ track % progress เช่น คอร์สเรียน
     },
   },
-  { timestamps: true }
+  { timestamps: true, versionKey: false }
 );
 
-// Compound Index (ใช้ query บ่อย: library ของ user, ตามสถานะ และ expireAt)
+// Compound Index
 librarySchema.index({ userId: 1, status: 1, expireAt: 1 });
+// Unique constraint กันไม่ให้ user มี orderItemId ซ้ำมากกว่า 1
+librarySchema.index({ userId: 1, orderItemId: 1 }, { unique: true });
 
 export default mongoose.model("Library", librarySchema);

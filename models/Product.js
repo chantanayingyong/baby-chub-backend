@@ -17,7 +17,7 @@ const ProductSchema = new Schema(
 			min: { type: Number, min: 0, default: 3 },
 			max: { type: Number, min: 0, default: 12 }
 		},
-		images: { type: [String], trim: true },
+		images: { type: [String], required: true, trim: true },
 		available: { type: Boolean, default: false },
 		asset: {
 			path: { type: String, required: true, trim: true },

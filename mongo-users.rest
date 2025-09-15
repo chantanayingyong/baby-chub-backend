@@ -1,62 +1,48 @@
-# mongo-users.rest
-# ชุดทดสอบ Backend (User: Auth + Profile) สำหรับ API ที่เมานท์ใต้ /api/v1
-# ใช้กับ VS Code REST Client (humao.rest-client)
-# ---------------------------------------------------------------
-# คำแนะนำ:
-# - เปิด rememberCookies ไว้ (ดูด้านบน) เพื่อให้ /auth/me ใช้คุกกี้จาก /auth/login ได้
-# - ใน DEV: ใช้ host เดียวกัน (เช่น ทั้งหมดเรียก http://localhost:3000) เพื่อให้คุกกี้มีผล
-# - ถ้าเจอ 429 ให้พักสักครู่ (มี rate limit)
-# ---------------------------------------------------------------
+
+# mongo-users.rest (User: Auth + Profile) — version: targetAge {from,to}
+# ใช้กับ VS Code REST Client
+# ตั้งค่า Settings: "rest-client.rememberCookiesForSubsequentRequests": true
 
 @host = http://localhost:3000
-# ↑ พอร์ตที่ server รัน (ตาม .env → PORT=3000)
-
 @base = {{host}}/api/v1
-# ↑ base path เวอร์ชัน 1
 
-# ---------- บัญชีทดสอบหลัก (คงที่: สำหรับ login/me/profile) ----------
+# บัญชีทดสอบหลัก (คงที่ สำหรับ login/me/profile)
 @test_email = man.test@example.com
 @password = secret1234
 
-# ---------- สมัครบัญชีสุ่ม (ป้องกันอีเมลซ้ำ ใช้เมื่ออยากลอง signup หลายรอบ) ----------
+# สมัครบัญชีสุ่ม (กันอีเมลซ้ำ)
 @ts = {{$timestamp}}
 @new_email = man+{{ts}}@example.com
 
 
 ### ───────────────────────────────────────────────────────────────
-### SCENARIO 0: Health & Basic
+### HEALTH
 ### ───────────────────────────────────────────────────────────────
-
-### Health check (ตรวจว่า server ทำงาน)
 GET {{host}}/healthz
-# ควรได้ {"status":"ok", ...} ถ้า 404 แปลว่ายังไม่ได้ประกาศ /healthz ใน server.js
+# ควรได้ {"status":"ok", ...}
 
 
 ### ───────────────────────────────────────────────────────────────
-### SCENARIO 1: Sign up → Verify → Login → Me (บัญชีทดสอบหลัก)
+### SCENARIO 1: Sign up → Verify → Login → Me (บัญชีหลัก)
 ### ───────────────────────────────────────────────────────────────
 
 ### 1.1 Sign up (ครั้งเดียวสำหรับบัญชีหลัก)
-# หลังยิง สำเร็จแล้วดู token ยืนยันอีเมลใน console ของ server
 POST {{base}}/auth/signup
 Content-Type: application/json
 
 {
-  "firstName": "Man",
-  "lastName": "Tester",
+  "fullName": "Man Tester",
   "mobile": "0812345678",
   "email": "{{test_email}}",
   "password": "{{password}}",
-  "targetAges": ["4-6", "6-9"],
+  "targetAge": { "from": 3, "to": 15 },
   "agreeToPolicy": true
 }
+# หลังยิง ดู token verify ใน console ของ server
 
-### 1.2 Verify email (คัดลอก token จาก console มาใส่แทน PASTE_VERIFY_TOKEN)
-GET {{base}}/auth/verify-email?token=687b3c60d2dd13d525d479d85fc60c788b62cc1e504257c99ad422563a9fc766
-# ควรได้ { "message": "Email verified" }
-
+### 1.2 Verify email (คัดลอก token จาก console วางแทนด้านล่าง)
+GET {{base}}/auth/verify-email?token=796c04b5a26935adebb65c7d3e27f929a2b73a3e446227607ea31886cd60888a1
 ### 1.3 Login (ตั้ง httpOnly cookie: accessToken)
-# ต้องเปิด rememberCookies เพื่อให้ /auth/me ใช้คุกกี้นี้ได้
 POST {{base}}/auth/login
 Content-Type: application/json
 
@@ -65,36 +51,31 @@ Content-Type: application/json
   "password": "{{password}}"
 }
 
-### 1.4 Me (อ่านข้อมูลผู้ใช้ปัจจุบันจาก cookie)
+### 1.4 Me (ต้องแนบคุกกี้จาก login อัตโนมัติ)
 GET {{base}}/auth/me
-# ถ้า 401: ตรวจว่า setting rememberCookies เปิดแล้ว และ /auth/login สำเร็จใน host เดียวกัน
 
 
 ### ───────────────────────────────────────────────────────────────
-### SCENARIO 2: Sign up แบบสุ่ม (ทดลองสมัครซ้ำโดยไม่ชน) — (ไม่เกี่ยวกับบัญชีหลัก)
+### SCENARIO 2: Sign up แบบสุ่ม (ทดสอบสมัครซ้ำโดยไม่ชน)
 ### ───────────────────────────────────────────────────────────────
-
-### 2.1 Sign up (บัญชีสุ่ม)
 POST {{base}}/auth/signup
 Content-Type: application/json
 
 {
-  "firstName": "Rand",
-  "lastName": "User",
+  "fullName": "Rand User",
   "mobile": "0890000000",
   "email": "{{new_email}}",
   "password": "{{password}}",
-  "targetAges": ["9-12", "13+"],
+  "targetAge": { "from": 9, "to": 12 },
   "agreeToPolicy": true
 }
-# ใช้เมื่ออยากทดสอบสมัครหลายครั้งเรื่อย ๆ
 
 
 ### ───────────────────────────────────────────────────────────────
-### SCENARIO 3: Forgot → Reset Password (บัญชีทดสอบหลัก)
+### SCENARIO 3: Forgot → Reset Password (บัญชีหลัก)
 ### ───────────────────────────────────────────────────────────────
 
-### 3.1 Forgot password (ระบบจะ log reset token ที่ console)
+### 3.1 Forgot password (ดู reset token ใน console)
 POST {{base}}/auth/forgot-password
 Content-Type: application/json
 
@@ -102,16 +83,16 @@ Content-Type: application/json
   "email": "{{test_email}}"
 }
 
-### 3.2 Reset password (ใช้ token จาก console)
+### 3.2 Reset password (วาง token ล่าสุด)
 POST {{base}}/auth/reset-password
 Content-Type: application/json
 
 {
-  "token": "cb98c76f009293eedae78032cd9ceadf65716c2b1f49c2ac68798a56692da921",
+  "token": "11826f171313e13b471166550c8f8adfb590789474c37bea2acbb85d093b9b6d",
   "newPassword": "secret12345"
 }
 
-### 3.3 Login อีกครั้งด้วยรหัสใหม่
+### 3.3 Login ด้วยรหัสใหม่
 POST {{base}}/auth/login
 Content-Type: application/json
 
@@ -120,18 +101,18 @@ Content-Type: application/json
   "password": "secret12345"
 }
 
-### 3.4 Me (ตรวจว่าล็อกอินด้วยรหัสใหม่สำเร็จ)
+### 3.4 Me
 GET {{base}}/auth/me
 
 
 ### ───────────────────────────────────────────────────────────────
-### SCENARIO 4: User Profile (ต้อง Login ก่อน)
+### SCENARIO 4: User Profile (ต้อง Login)
 ### ───────────────────────────────────────────────────────────────
 
 ### 4.1 Get my profile
 GET {{base}}/users
 
-### 4.2 Update my profile
+### 4.2 Update my profile (แก้ช่วงอายุด้วยรูปแบบ {from,to})
 PATCH {{base}}/users
 Content-Type: application/json
 
@@ -139,10 +120,10 @@ Content-Type: application/json
   "firstName": "Man",
   "lastName": "Suwannason",
   "mobile": "089-123-4567",
-  "targetAges": ["9-12", "13+"]
+  "targetAge": { "from": 10, "to": 13 }
 }
 
-### 4.3 Change password (ส่ง currentPassword → newPassword)
+### 4.3 Change password (current -> new)
 PATCH {{base}}/users/password
 Content-Type: application/json
 
@@ -150,7 +131,6 @@ Content-Type: application/json
   "currentPassword": "secret12345",
   "newPassword": "secret1234"
 }
-# หมายเหตุ: หลังเปลี่ยนกลับเป็น secret1234 แล้ว รอบถัดๆ ไปให้ใช้ secret1234 เป็น currentPassword
 
 ### 4.4 Set avatar
 PATCH {{base}}/users/avatar
@@ -194,27 +174,27 @@ Content-Type: application/json
   "newsletter": true
 }
 
-### 4.9 List my orders (MVP: อาจเป็น [] ถ้ายังไม่มี)
+### 4.9 List my orders (MVP อาจเป็น [])
 GET {{base}}/users/orders
 
-### 4.10 Get a specific order (แทนที่ ORDER_ID จากรายการด้านบน)
+### 4.10 Get one order (แทนที่ ORDER_ID จากรายการด้านบน)
 GET {{base}}/orders/ORDER_ID
 
-### 4.11 List active sessions (อุปกรณ์/เบราว์เซอร์ที่ล็อกอิน)
+### 4.11 List active sessions
 GET {{base}}/users/sessions
 
-### 4.12 Remove a session (แทนที่ SESSION_ID จากรายการด้านบน)
+### 4.12 Remove a session (แทนที่ SESSION_ID)
 DELETE {{base}}/users/sessions/SESSION_ID
 
 
 ### ───────────────────────────────────────────────────────────────
-### SCENARIO 5: Logout & Delete Account (บัญชีหลัก)
+### SCENARIO 5: Logout & Delete Account
 ### ───────────────────────────────────────────────────────────────
 
-### 5.1 Logout (ลบคุกกี้)
+### 5.1 Logout
 POST {{base}}/auth/logout
 
-### 5.2 (ออปชัน) Login ใหม่ เพื่อยืนยันว่า cookie ทำงาน
+### 5.2 (ออปชัน) Login ยืนยันว่า cookie เคลียร์แล้ว
 POST {{base}}/auth/login
 Content-Type: application/json
 
@@ -223,7 +203,6 @@ Content-Type: application/json
   "password": "{{password}}"
 }
 
-### 5.3 (ออปชัน) Delete my account (ลบบัญชีหลัก + เคลียร์คุกกี้)
-# ระวัง: ลบแล้วข้อมูลบัญชีหลักหายไป ต้อง Sign up + Verify + Login ใหม่
+### 5.3 (ออปชัน) Delete my account (ลบผู้ใช้หลัก)
 DELETE {{base}}/users
-# ควรได้ 204 No Content
+# ได้ 204 No Content

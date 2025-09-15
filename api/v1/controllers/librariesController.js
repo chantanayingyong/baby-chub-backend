@@ -1,11 +1,19 @@
-import { Library } from "../../../models/Library.js";
+import Library from "../../../models/Library.js";
+import { Product } from "../../../models/Product.js";
+import { User } from "../../../models/User.js";
 
 /* POST: เพิ่ม purchased item (หลัง order confirmed) */
 export const addLibraryItem = async (req, res) => {
   try {
     const newItem = new Library(req.body);
     const savedItem = await newItem.save();
-    res.status(201).json(savedItem);
+
+    // populate หลัง save
+    const populatedItem = await savedItem
+      .populate("productId")
+      .populate("userId");
+
+    res.status(201).json(populatedItem);
   } catch (err) {
     res.status(400).json({
       message: "❌ Error adding library item",
@@ -18,7 +26,9 @@ export const addLibraryItem = async (req, res) => {
 export const getUserLibraries = async (req, res) => {
   try {
     const { userId } = req.params;
-    const libraries = await Library.find({ userId }).populate("productId");
+    const libraries = await Library.find({ userId })
+      .populate("productId")
+      .populate("userId");
 
     res.status(200).json({
       error: false,
@@ -42,7 +52,9 @@ export const getActiveLibraries = async (req, res) => {
       userId,
       productId,
       status: "active",
-    }).populate("productId");
+    })
+      .populate("productId")
+      .populate("userId");
 
     res.status(200).json({
       error: false,
@@ -66,7 +78,9 @@ export const getExpiredLibraries = async (req, res) => {
       userId,
       productId,
       status: "expired",
-    }).populate("productId");
+    })
+      .populate("productId")
+      .populate("userId");
 
     res.status(200).json({
       error: false,
@@ -88,7 +102,9 @@ export const updateLibraryItem = async (req, res) => {
     const { id } = req.body; // ใช้ body เพราะ route = /users/libraries
     const updatedItem = await Library.findByIdAndUpdate(id, req.body, {
       new: true,
-    });
+    })
+      .populate("productId")
+      .populate("userId");
 
     res.status(200).json(updatedItem);
   } catch (err) {
