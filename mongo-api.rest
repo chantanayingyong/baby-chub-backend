@@ -1,0 +1,4 @@
+
+### Get New Products
+GET http://localhost:3000/products/new
+Content-Type: application/json

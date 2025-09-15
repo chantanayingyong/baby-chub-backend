@@ -1,6 +1,14 @@
 import { Product } from "../../../models/Product.js";
 
-
+const parseArray = (val) => {
+    if (!val) return [];
+    try {
+    const parsed = JSON.parse(val);
+    return Array.isArray(parsed) ? parsed : [];
+} catch {
+    return [];
+}
+};
 
 
 
@@ -106,6 +114,28 @@ export const addProduct = async (req, res, next) => {
     }
 };
 
+//new arrivals
+
+export const getNewArrivals = async (req, res, next) => {
+    try {
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limitRaw = parseInt(req.query.limit, 10) || 12;
+    const limit = Math.min(Math.max(1, limitRaw), 50);
+    const skip = (page - 1) * limit;
+
+    const availableOnly = String(req.query.availableOnly ?? "true") === "true";
+    const filter = availableOnly ? { available: true } : {};
+
+    const [items, total] = await Promise.all([
+        Product.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+        Product.countDocuments(filter),
+    ]);
+
+    res.json({ error: false, page, limit, total, products: items });
+} catch (err) {
+    next(err);
+}
+};
 // update a product
 export const updateProduct = async (req, res, next) => {
     const { productId } = req.params;
