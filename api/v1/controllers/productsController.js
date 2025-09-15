@@ -5,7 +5,7 @@ import { Product } from "../../../models/Product.js";
 
 
 // get products by query
-export const getProducts = async (req, res) => {
+export const getProducts = async (req, res, next) => {
     const { age, price, type, subject } = req.query;
     // console.log('req.query:', req.query);
     

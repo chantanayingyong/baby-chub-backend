@@ -1,4 +1,5 @@
 import { Discount } from "../../../models/Discount.js";
+import Library from "../../../models/Library.js";
 import { Order } from "../../../models/Order.js";
 import { Product } from "../../../models/Product.js";
 
@@ -101,7 +102,7 @@ export const createOrder = async (req, res, next) => {
         let discount = null;
         
         if (promoCode) {
-            discount = Discount.findOneAndUpdate(
+            discount = await Discount.findOneAndUpdate(
                 { 
                     code: promoCode, 
                     isActive: true,
@@ -116,26 +117,92 @@ export const createOrder = async (req, res, next) => {
         const totalAmount = !discount || subTotalAmount < discount.minimumPurchaseAmount
             ? subTotalAmount
             : discount.isPercent
-            ? subTotalAmount * (1 - (discount.amount * 0.01))
-            : subTotalAmount - discount.amount;
-
+            ? Math.round(subTotalAmount * (1 - (discount.amount * 0.01)))
+            : Math.round(subTotalAmount - discount.amount);
+        
         const newOrder = new Order({
             userId: user.id,
             products: orderProducts, // Use the newly constructed array
             promoCode,
-            discountAmount: totalAmount - subTotalAmount,
+            discountAmount: subTotalAmount - totalAmount,
             totalAmount,
             paymentMethod,
             status: 'pending'
         });
 
-        await newOrder.save();
-
+        const order = await newOrder.save();
+        // console.log('order.id:', order.id)
         res.status(201).json({
             error: false,
+            order,
             message: "Order created successfully",
         });
 
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const updateOrderStatus = async (req, res, next) => {
+    const { orderId } = req.params;
+    const { status } = req.body;
+
+    if (!status || (status !== 'paid' && status !== 'cancelled')) {
+        const error = new Error("Invalid status provided. Status must be 'paid' or 'cancelled'");
+        error.status = 400;
+        return next(error);
+    }
+
+    try {
+        // console.log('orderId:', orderId, 'status:', status)
+        const updatedOrder = await Order.findOneAndUpdate(
+            { _id: orderId },
+            { "$set": { status: status } },
+            { new: true, runValidators: true }
+        );
+
+        if (!updatedOrder) {
+            const error = new Error("Order not found");
+            error.status = 404;
+            return next(error);
+        }
+
+        let libraryStatus = null;
+        if (updatedOrder.status === 'paid') {
+            const libraryItems = updatedOrder.products.map(item => ({
+                userId: updatedOrder.userId,
+                orderId: updatedOrder._id,
+                orderItemId: item._id,
+                productId: item.productId,
+                productTitle: item.productTitle,
+                type: item.productType,
+                expireAt: item.plan === 'oneTime' ? null 
+                    : item.plan === 'monthly' ? new Date(new Date().setMonth(new Date().getMonth() + 1))
+                    : new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
+                progress: 0,
+            }));
+
+            try {
+                await Library.insertMany(libraryItems, { ordered: false });
+                libraryStatus = "Products added to library";
+                
+            } catch (err) {
+                console.error("Failed to add products to library:", err);
+
+                if (err.code === 11000) {
+                    libraryStatus = "Some products were already in the user's library";
+                } else {
+                    libraryStatus = "Failed to add products to library";
+                }
+            }    
+        }
+
+        res.status(201).json({
+            error: false,
+            message: "Order updated successfully",
+            libraryStatus
+        });
+        
     } catch (err) {
         next(err);
     }
