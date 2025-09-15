@@ -3,6 +3,7 @@ import { addProduct, deleteProduct, getProducts, updateProduct } from "../contro
 import reviewRoutes from "./reviewRoutes.js";
 import { getNewArrivals } from "../controllers/productsController.js";
 import { requireAdmin, requireAuth } from "../../../middleware/auth.js";
+import uploadImages from "../../../middleware/multer.js";
 
 
 const router = express.Router();
@@ -14,8 +15,8 @@ router.get("/hello", (req, res) => {
 router.get("/products", getProducts);
 router.get("/products/new", getNewArrivals);
 router.use("/:id/reviews", reviewRoutes);
-router.post("/products", requireAuth, requireAdmin, addProduct);
-router.put("/products/:productId", requireAuth, requireAdmin, updateProduct);
+router.post("/products", requireAuth, requireAdmin, uploadImages, addProduct);
+router.put("/products/:productId", requireAuth, requireAdmin, uploadImages, updateProduct);
 router.delete("/products/:productId", requireAuth, requireAdmin, deleteProduct);
 
 
