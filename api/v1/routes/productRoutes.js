@@ -13,7 +13,7 @@ router.get("/hello", (req, res) => {
 });
 
 router.get("/products", getProducts);
-router.get("/products/new", getNewArrivals);
+router.get("/new-products", getNewArrivals);
 router.use("/:id/reviews", reviewRoutes);
 router.post("/products", requireAuth, requireAdmin, uploadImages, addProduct);
 router.put("/products/:productId", requireAuth, requireAdmin, uploadImages, updateProduct);
