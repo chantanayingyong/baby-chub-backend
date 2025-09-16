@@ -126,11 +126,13 @@ export const addProduct = async (req, res, next) => {
         const prices = JSON.parse(product.prices);
         const age = JSON.parse(product.age);
         const asset = JSON.parse(product.asset);
-
+        const subjects = JSON.parse(product.subjects);
+        
         const newProductData = {
             name: product.name,
             description: product.description,
             type: product.type,
+            subjects: subjects,
             prices: { 
                 oneTime: prices.oneTime ? Number(prices.oneTime) : null,
                 monthly: prices.monthly ? Number(prices.monthly) : null,
@@ -200,6 +202,7 @@ export const updateProduct = async (req, res, next) => {
         const prices = JSON.parse(product.prices);
         const age = JSON.parse(product.age);
         const asset = JSON.parse(product.asset);
+        const subjects = JSON.parse(product.subjects);
         const existingImages = product.existingImages ? JSON.parse(product.existingImages) : [];
         const newImageUrls = [];
 
@@ -223,6 +226,7 @@ export const updateProduct = async (req, res, next) => {
             name: product.name,
             description: product.description,
             type: product.type,
+            subjects: subjects,
             prices: { 
                 oneTime: prices.oneTime ? Number(prices.oneTime) : null,
                 monthly: prices.monthly ? Number(prices.monthly) : null,
