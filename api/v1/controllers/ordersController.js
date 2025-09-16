@@ -207,3 +207,128 @@ export const updateOrderStatus = async (req, res, next) => {
         next(err);
     }
 };
+
+export const getOrders = async (req, res, next) => {
+    try {
+        const { status, page = 1, limit = 20 } = req.query;
+        const query = {};
+
+        if (status) {
+            query.status = status;
+        }
+
+        const orders = await Order.find(query)
+            .populate('userId', 'firstName lastName email')
+            .skip((page - 1) * limit)
+            .limit(parseInt(limit, 10))
+            .sort({ createdAt: -1 });
+
+        const totalOrders = await Order.countDocuments(query);
+
+        res.json({
+            error: false,
+            items: orders,
+            total: totalOrders,
+            page: parseInt(page, 10),
+            pageSize: parseInt(limit, 10),
+            message: "Retrieved orders successfully",
+        });
+
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const getOrderById = async (req, res, next) => {
+    const { orderId } = req.params;
+    
+    try {
+        const order = await Order.findById(orderId).populate('userId', 'firstName lastName email');
+        
+        if (!order) {
+            const error = new Error("Order not found");
+            error.status = 404;
+            return next(error);
+        }
+        
+        return res.json({
+            error: false,
+            order,
+            message: "Retrieved order successfully",
+        });
+
+    } catch (err) {
+        if (err.kind === 'ObjectId') {
+            const error = new Error("Invalid order ID");
+            error.status = 400;
+            return next(error);
+        }
+        next(err);
+    }
+};
+
+export const patchOrderStatus = async (req, res, next) => {
+    const { orderId } = req.params;
+    const { status } = req.body;
+
+    if (!['paid', 'cancelled'].includes(status)) {
+        const error = new Error("Invalid status provided");
+        error.status = 400;
+        return next(error);
+    }
+
+    try {
+        const order = await Order.findByIdAndUpdate(
+            orderId,
+            { status },
+            { new: true, runValidators: true }
+        );
+
+        if (!order) {
+            const error = new Error("Order not found");
+            error.status = 404;
+            return next(error);
+        }
+
+        res.json({
+            error: false,
+            order,
+            message: `Order status updated to ${status}`,
+        });
+
+    } catch (err) {
+        if (err.kind === 'ObjectId') {
+            const error = new Error("Invalid order ID");
+            error.status = 400;
+            return next(error);
+        }
+        next(err);
+    }
+};
+
+export const deleteOrder = async (req, res, next) => {
+    const { orderId } = req.params;
+
+    try {
+        const order = await Order.findByIdAndDelete(orderId);
+
+        if (!order) {
+            const error = new Error("Order not found");
+            error.status = 404;
+            return next(error);
+        }
+
+        res.json({
+            error: false,
+            message: "Order deleted successfully",
+        });
+
+    } catch (err) {
+        if (err.kind === 'ObjectId') {
+            const error = new Error("Invalid order ID");
+            error.status = 400;
+            return next(error);
+        }
+        next(err);
+    }
+};
