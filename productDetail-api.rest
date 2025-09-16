@@ -1,0 +1,2 @@
+### Get Product by Id
+GET http://localhost:3030/api/v1/products/68bfcf396a8e789bd4154517

@@ -102,7 +102,7 @@ export const deleteReview = async (req, res, next) => {
   // const { user } = req.user
 
   try {
-    const review = await Review.findOne({ _id: reviewId });
+    const review = await Review.findOne({ _id: reviewId, productId });
 
     if (!review) {
       return res
@@ -110,7 +110,7 @@ export const deleteReview = async (req, res, next) => {
         .json({ error: true, message: "Review not found." });
     }
 
-    await Review.deleteOne({ _id: reviewId });
+    await Review.deleteOne({ _id: reviewId, productId });
 
     return res.json({
       error: false,
