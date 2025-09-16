@@ -1,11 +1,18 @@
 import { Product } from "../../../models/Product.js";
+import cloudinary from "../../../utils/cloudinary.js";
 
-
-
-
+const parseArray = (val) => {
+    if (!val) return [];
+    try {
+    const parsed = JSON.parse(val);
+    return Array.isArray(parsed) ? parsed : [];
+} catch {
+    return [];
+}
+};
 
 // get products by query
-export const getProducts = async (req, res) => {
+export const getProducts = async (req, res, next) => {
     const { age, price, type, subject } = req.query;
     // console.log('req.query:', req.query);
     
@@ -92,10 +99,58 @@ export const getProducts = async (req, res) => {
 
 // add new product
 export const addProduct = async (req, res, next) => {
-    const newProduct = req.body;
-    // console.log(newProduct);
+    const product = req.body;
+    const images = req.files;
+
+    if (!images || images.length === 0) {
+        const error = new Error("No product image files uploaded");
+        error.status = 400;
+        return next(error);
+    }
+
     try {
-        const product = await Product.create(newProduct);
+        const uploadPromises = images.map(file => {
+            // Convert buffer to data URI
+            const dataUri = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+            return cloudinary.uploader.upload(dataUri, {
+                upload_preset: 'product_images'
+            });
+        });
+
+        // Upload images to Cloudinary
+        const uploadResults = await Promise.all(uploadPromises);
+        // Extract the secure URLs from the upload results
+        const imageUrls = uploadResults.map(result => result.secure_url);
+
+        // Parse JSON string fields from form data
+        const prices = JSON.parse(product.prices);
+        const age = JSON.parse(product.age);
+        const asset = JSON.parse(product.asset);
+
+        const newProductData = {
+            name: product.name,
+            description: product.description,
+            type: product.type,
+            prices: { 
+                oneTime: prices.oneTime ? Number(prices.oneTime) : null,
+                monthly: prices.monthly ? Number(prices.monthly) : null,
+                yearly: prices.yearly ? Number(prices.yearly) : null
+            },
+            isDiscounted: product.isDiscounted === 'true',
+            age: { 
+                min: Number(age.min),
+                max: Number(age.max)
+            },
+            images: imageUrls,
+            available: product.available === 'true',
+            asset: { 
+                path: asset.path,
+                type: asset.type
+            },
+        };
+
+        const newProduct = await Product.create(newProductData);
+        
         res.status(201).json({
             error: false,
             product,
@@ -104,6 +159,29 @@ export const addProduct = async (req, res, next) => {
     } catch (err) {
         next(err);
     }
+};
+
+//new arrivals
+
+export const getNewArrivals = async (req, res, next) => {
+    try {
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limitRaw = parseInt(req.query.limit, 10) || 12;
+    const limit = Math.min(Math.max(1, limitRaw), 50);
+    const skip = (page - 1) * limit;
+
+    const availableOnly = String(req.query.availableOnly ?? "true") === "true";
+    const filter = availableOnly ? { available: true } : {};
+
+    const [items, total] = await Promise.all([
+        Product.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+        Product.countDocuments(filter),
+    ]);
+
+    res.json({ error: false, page, limit, total, products: items });
+} catch (err) {
+    next(err);
+}
 };
 
 // update a product
@@ -118,9 +196,54 @@ export const updateProduct = async (req, res, next) => {
     }
 
     try {
+        // Parse JSON string fields from form data
+        const prices = JSON.parse(product.prices);
+        const age = JSON.parse(product.age);
+        const asset = JSON.parse(product.asset);
+        const existingImages = product.existingImages ? JSON.parse(product.existingImages) : [];
+        const newImageUrls = [];
+
+        // Upload new images to Cloudinary if they exist
+        if (req.files && req.files.length > 0) {
+            const uploadPromises = req.files.map(file => {
+                const dataUri = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+                return cloudinary.uploader.upload(dataUri, {
+                    upload_preset: 'product_images'
+                });
+            });
+
+            const uploadResults = await Promise.all(uploadPromises);
+            uploadResults.forEach(result => newImageUrls.push(result.secure_url));
+        }
+
+        // Combine existing images with newly uploaded images
+        const updatedImages = [...existingImages, ...newImageUrls];
+
+        const updatedProductData = {
+            name: product.name,
+            description: product.description,
+            type: product.type,
+            prices: { 
+                oneTime: prices.oneTime ? Number(prices.oneTime) : null,
+                monthly: prices.monthly ? Number(prices.monthly) : null,
+                yearly: prices.yearly ? Number(prices.yearly) : null
+            },
+            isDiscounted: product.isDiscounted === 'true',
+            age: { 
+                min: Number(age.min),
+                max: Number(age.max)
+            },
+            images: updatedImages,
+            available: product.available === 'true',
+            asset: { 
+                path: asset.path,
+                type: asset.type
+            },
+        };
+
         const updatedProduct = await Product.findByIdAndUpdate(
             productId,
-            product,
+            updatedProductData,
             { new: true, runValidators: true }
         );
 
@@ -130,7 +253,7 @@ export const updateProduct = async (req, res, next) => {
             return next(error);
         }
 
-        res.status(201).json({
+        res.status(200).json({
             error: false,
             message: "Product updated successfully"
         });

@@ -24,12 +24,7 @@ const librarySchema = new mongoose.Schema(
     },
 
     productTitle: { type: String, required: true },
-    type: {
-      type: String,
-      enum: ["subscription", "digital", "content"],
-      required: true,
-    },
-
+    type: { type: String, required: true },
     status: {
       type: String,
       enum: ["active", "expired", "revoked"],
