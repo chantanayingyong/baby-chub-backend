@@ -9,6 +9,7 @@ import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import { requireAuth, requireAdmin } from "../../middleware/auth.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
+import adminUserRoutes from "./routes/adminUserRoutes.js";
 
 export default () => {
   const router = express.Router();
@@ -22,6 +23,7 @@ export default () => {
   router.use("/", requireAuth, cartRoutes);
   router.use("/", requireAuth, favoriteRoutes);
   router.use("/", requireAuth, orderRoutes);
+  router.use("/admin", requireAuth, requireAdmin, adminUserRoutes);
 
   return router;
 };

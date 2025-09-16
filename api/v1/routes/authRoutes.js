@@ -1,8 +1,8 @@
-
 import express from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
+import mongoose from "mongoose";
 import { User } from "../../../models/User.js";
 import { requireAuth } from "../../../middleware/auth.js";
 
@@ -28,7 +28,6 @@ router.post("/signup", async (req, res, next) => {
       firstName,
       lastName,
       mobile,
-      // เดิมใช้ targetAges: [] (bucket) — เปลี่ยนเป็นช่วงตัวเลขแบบ FE
       targetAge, // { from, to }
       ageFrom, // เผื่อรับรูปแบบเก่า
       ageTo, // เผื่อรับรูปแบบเก่า
@@ -47,7 +46,6 @@ router.post("/signup", async (req, res, next) => {
       return res.status(409).json({ message: "Email already in use" });
 
     // --- Normalize target age ---
-    // รองรับทั้ง {from,to} หรือ ageFrom/ageTo แล้วตรวจ 3–15, เป็นจำนวนเต็ม และ from ≤ to
     let range = targetAge;
     if (!range && ageFrom != null && ageTo != null) {
       range = { from: Number(ageFrom), to: Number(ageTo) };
@@ -73,11 +71,9 @@ router.post("/signup", async (req, res, next) => {
       mobile,
       role: "user",
       agreeToPolicyAt: new Date(),
-      // ✅ เก็บช่วงอายุเป็นตัวเลขให้ตรงกับ Model ใหม่
       targetAge: { from: range.from, to: range.to },
     });
 
-    // รองรับทั้ง fullName หรือแยกชื่อ
     if (fullName) user.fullName = fullName;
     else {
       user.firstName = firstName;
@@ -161,6 +157,14 @@ router.post("/login", async (req, res, next) => {
     if (!ok) return res.status(401).json({ message: "Invalid credentials" });
 
     user.lastLoginAt = new Date();
+
+    // --- NEW: create & record session ---
+    const sessionId = new mongoose.Types.ObjectId(); // ให้ชนิดสอดคล้องกับ _id ของ subdoc
+    user.touchSession({
+      sessionId,
+      device: req.get("user-agent") || "Unknown device",
+      ip: req.ip,
+    });
     await user.save();
 
     const token = signAccessToken({ sub: user.id, role: user.role });
@@ -171,6 +175,15 @@ router.post("/login", async (req, res, next) => {
       sameSite: isProd ? "none" : "lax",
       path: "/",
       maxAge: 1000 * 60 * 60 * 2, // 2 ชั่วโมง
+    });
+
+    // --- NEW: set sid cookie for session tracking ---
+    res.cookie("sid", sessionId.toString(), {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax",
+      path: "/",
+      maxAge: 1000 * 60 * 60 * 24 * 7, // ~7 วัน
     });
 
     return res.json({ user: user.toJSON(), message: "Login successful" });
@@ -237,6 +250,13 @@ router.post("/logout", (req, res) => {
     httpOnly: true,
     secure: isProd,
     sameSite: isProd ? "none" : "lax", // ให้ "ตรง" กับตอนตั้งค่า
+    path: "/",
+  });
+  // --- NEW: clear sid cookie ---
+  res.clearCookie("sid", {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
     path: "/",
   });
   return res.json({ message: "Logged out" });

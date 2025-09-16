@@ -1,10 +1,4 @@
 // models/User.js
-/* =========================
- * Imports (ESM)
- *  - Schema, model: สร้างสคีมา/โมเดล
- *  - bcrypt: hash/เปรียบเทียบรหัสผ่าน
- *  - crypto: สร้าง token แบบสุ่มปลอดภัย + แฮช token ก่อนเก็บ
- * ========================= */
 import { Schema, model } from "mongoose";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
