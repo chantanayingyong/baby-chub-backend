@@ -1,3 +1,4 @@
+import { Order } from "../../../models/Order.js";
 import { Product } from "../../../models/Product.js";
 import cloudinary from "../../../utils/cloudinary.js";
 
@@ -17,13 +18,32 @@ export const getProducts = async (req, res, next) => {
     // console.log('req.query:', req.query);
     
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-    const limitRaw = parseInt(req.query.limit, 10) || 10;
+    const limitRaw = parseInt(req.query.limit, 10);
     const limit = Math.min(Math.max(1, limitRaw), 100);
     const q = (req.query.q || "").toString().trim();
     
     try {
         const filter = {};
         filter.$and = [];
+
+        // Check if a user is authenticated
+        if (req.user && req.user.id) {
+            const userId = req.user.id;
+
+            // Find all paid orders for the user
+            const paidOrders = await Order.find({ 
+                userId: userId, 
+                status: 'paid' 
+            });
+
+            // Extract all product IDs from the paid orders
+            const purchasedProductIds = paidOrders.flatMap(order => 
+                order.products.map(item => item.productId)
+            );
+
+            // Add a filter to exclude these products
+            filter.$and.push({ '_id': { '$nin': purchasedProductIds } });
+        }
 
         if (q) {
             const regex = new RegExp(q, "i");
@@ -126,11 +146,13 @@ export const addProduct = async (req, res, next) => {
         const prices = JSON.parse(product.prices);
         const age = JSON.parse(product.age);
         const asset = JSON.parse(product.asset);
-
+        const subjects = JSON.parse(product.subjects);
+        
         const newProductData = {
             name: product.name,
             description: product.description,
             type: product.type,
+            subjects: subjects,
             prices: { 
                 oneTime: prices.oneTime ? Number(prices.oneTime) : null,
                 monthly: prices.monthly ? Number(prices.monthly) : null,
@@ -200,6 +222,7 @@ export const updateProduct = async (req, res, next) => {
         const prices = JSON.parse(product.prices);
         const age = JSON.parse(product.age);
         const asset = JSON.parse(product.asset);
+        const subjects = JSON.parse(product.subjects);
         const existingImages = product.existingImages ? JSON.parse(product.existingImages) : [];
         const newImageUrls = [];
 
@@ -223,6 +246,7 @@ export const updateProduct = async (req, res, next) => {
             name: product.name,
             description: product.description,
             type: product.type,
+            subjects: subjects,
             prices: { 
                 oneTime: prices.oneTime ? Number(prices.oneTime) : null,
                 monthly: prices.monthly ? Number(prices.monthly) : null,
