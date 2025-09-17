@@ -86,7 +86,7 @@ router.post("/signup", async (req, res, next) => {
 
     // TODO: ส่งอีเมลยืนยันจริง (SendGrid/Nodemailer)
     const verifyLink = `${process.env.APP_ORIGIN}/verify-email?token=${raw}`;
-    console.log("[MOCK EMAIL] Verify:", verifyLink);
+    // console.log("[MOCK EMAIL] Verify:", verifyLink);
 
     return res
       .status(201)
@@ -130,7 +130,7 @@ router.post("/resend-verification", async (req, res, next) => {
       const raw = user.setEmailVerifyToken(60);
       await user.save();
       const verifyLink = `${process.env.APP_ORIGIN}/verify-email?token=${raw}`;
-      console.log("[MOCK EMAIL] Verify (resend):", verifyLink);
+      // console.log("[MOCK EMAIL] Verify (resend):", verifyLink);
     }
     return res.json({
       message: "If email exists, verification mail was sent.",
@@ -208,7 +208,7 @@ router.post("/forgot-password", async (req, res, next) => {
       const raw = user.setResetPasswordToken(30); // 30 นาที
       await user.save();
       const resetLink = `${process.env.APP_ORIGIN}/reset-password?token=${raw}`;
-      console.log("[MOCK EMAIL] Reset:", resetLink);
+      // console.log("[MOCK EMAIL] Reset:", resetLink);
     }
     return res.json({ message: "If email exists, reset mail was sent." });
   } catch (err) {
