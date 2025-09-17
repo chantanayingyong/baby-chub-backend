@@ -1,8 +1,8 @@
 ### Get all reviews
-GET http://localhost:3030/api/v1/products/68bfcf396a8e789bd4154517/reviews
+GET http://localhost:3100/api/v1/products/68bfcf396a8e789bd4154517/reviews
 
 ### Add a review
-POST http://localhost:3030/api/v1/products/68bfcf396a8e789bd4154517/reviews
+POST http://localhost:3100/api/v1/products/68c984e4b0bdc7c3c45161f7/reviews
 Content-Type: application/json
 
 {
@@ -12,17 +12,17 @@ Content-Type: application/json
 }
 
 ### Update a review -> endpoint /products/:productId/reviews/:reviewId
-PATCH http://localhost:3030/api/v1/products/68bfcf396a8e789bd4154517/reviews/68c3ceac5c573aebd597611d
+PATCH http://localhost:3100/api/v1/products/68c984e4b0bdc7c3c45161f7/reviews/68ca796fd8c4be6f16504adf
 Content-Type: application/json
 
 {
-    "rating": 4,
+    "rating": 5,
     "comment": "Awesome",
     "isPinned": true
 }
 
 ### Delete a review
-DELETE http://localhost:3030/api/v1/products/68bfcf396a8e789bd4154517/reviews/68c3ceac5c573aebd597611d
+DELETE http://localhost:3100/api/v1/products/68bfcf396a8e789bd4154517/reviews/68c3ceac5c573aebd597611d
 
 ### Toggle pinned a review
-PATCH http://localhost:3030/api/v1/products/68bfcf396a8e789bd4154517/reviews/68c29f05c8a77d726d423f0f/pin
+PATCH http://localhost:3100/api/v1/products/68bfcf396a8e789bd4154517/reviews/68c29f05c8a77d726d423f0f/pin

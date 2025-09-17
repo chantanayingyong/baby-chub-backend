@@ -3,10 +3,12 @@ import { Review } from "../../../models/Review.js";
 export const getReviews = async (req, res, next) => {
   const productId = req.params.productId;
   try {
-    const reviews = await Review.find({ productId }).sort({
-      isPinned: -1,
-      createdAt: -1,
-    });
+    const reviews = await Review.find({ productId })
+      .populate("userId", "firstName lastName avatarUrl")
+      .sort({
+        isPinned: -1,
+        createdAt: -1,
+      });
     return res.json({
       error: false,
       reviews,
@@ -20,32 +22,23 @@ export const getReviews = async (req, res, next) => {
 export const addReview = async (req, res, next) => {
   const { rating, comment, isPinned } = req.body;
   const productId = req.params.productId;
-  // const userId = req.user.user.id;
+  const userId = req.user?.id;
 
-  if (!rating && !comment) {
-    return res
-      .status(400)
-      .json({ error: true, message: "Rating and comment are required" });
+  if (!rating || !comment || !userId) {
+    return res.status(400).json({ error: true, message: "Unauthorized" });
   }
 
-  // พอทำเรื่องระบุ user เสร็จแล้วค่อย เอา !userid ไปไว้รวมกับ if ข้างบน
-  // if (!userId) {
-  //   return res
-  //     .status(401)
-  //     .json({ error: true, message: "Unauthorized - no user ID found" });
-  // }
-
   try {
-    // const existReview = await Review.findOne({ productId, userId });
-    // if (existReview) {
-    //   return res
-    //     .status(409)
-    //     .json({ error: true, message: "You already reviewed this product" });
-    // }
+    const existReview = await Review.findOne({ productId, userId });
+    if (existReview) {
+      return res
+        .status(409)
+        .json({ error: true, message: "You already reviewed this product" });
+    }
 
     const review = await Review.create({
       productId,
-      // userId,
+      userId,
       rating,
       comment,
       isPinned,
@@ -98,19 +91,19 @@ export const editReview = async (req, res, next) => {
 };
 
 export const deleteReview = async (req, res, next) => {
-  const reviewId = req.params.reviewId;
-  // const { user } = req.user
+  const { reviewId, productId } = req.params; // เอา productId จาก params
+  const userId = req.user?.id; // ตรวจ owner
 
   try {
-    const review = await Review.findOne({ _id: reviewId, productId });
+    const review = await Review.findOne({ _id: reviewId, productId, userId });
 
     if (!review) {
       return res
         .status(404)
-        .json({ error: true, message: "Review not found." });
+        .json({ error: true, message: "Review not found or unauthorized" });
     }
 
-    await Review.deleteOne({ _id: reviewId, productId });
+    await Review.deleteOne({ _id: reviewId, productId, userId });
 
     return res.json({
       error: false,
