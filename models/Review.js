@@ -10,7 +10,7 @@ const ReviewSchema = new Schema(
     userId: {
       type: Schema.Types.ObjectId,
       ref: "User",
-      required: false, //ชั่วคราว จนกว่า user routes จะเสร็จ
+      required: true,
     },
     rating: {
       type: Number,
