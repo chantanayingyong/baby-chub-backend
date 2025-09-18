@@ -27,7 +27,7 @@ export const getProducts = async (req, res, next) => {
         filter.$and = [];
 
         // Check if a user is authenticated
-        if (req.user && req.user.id) {
+        if (req.user && req.user.id && req.user.role !== 'admin') {
             const userId = req.user.id;
 
             // Find all paid orders for the user
